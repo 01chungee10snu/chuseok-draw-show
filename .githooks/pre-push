@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+npm test
+python3 scripts/generate_demo_data.py >/dev/null
+git diff --exit-code -- data/demo_participants.csv

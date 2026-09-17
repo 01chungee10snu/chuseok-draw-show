@@ -12,6 +12,8 @@
 
 ## 현재 프로토타입
 
+![Prototype preview](./docs/prototype-preview.png)
+
 - 가상 참가자 CSV 240명
 - 매니저 / 책임매니저 이상 2개 추첨 Pool
 - Dynamic Round Planner
@@ -37,6 +39,13 @@ python3 -m http.server 4173
 실제 직원 CSV는 Git에 올리지 마십시오. `.gitignore`에서 실데이터 패턴과 `data/private/`, `data/real/`을 차단합니다.
 
 프로토타입의 `data/demo_participants.csv`는 전부 가상 데이터입니다.
+
+## 조작
+
+- `SPACE`: 다음 라운드 / Final 진행
+- `F`: 전체화면
+- `R`: 현재 Pool 처음부터 재시작
+- `AUDIT LOG`: CSV SHA-256, 각 라운드 Gate 인원/확률/생존자 수 확인
 
 ## 변경 이력
 

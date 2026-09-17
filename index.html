@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#05080d" />
+  <title>THE LAST ONE — 2026 Chuseok Draw</title>
+  <link rel="stylesheet" href="./assets/styles.css" />
+</head>
+<body>
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div class="noise" aria-hidden="true"></div>
+
+  <main class="stage" id="stage">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">H</span>
+        <div>
+          <strong>2026 CHUSEOK DRAW</strong>
+          <span>경영지원본부 · Prototype v0.2</span>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button class="ghost" id="soundBtn" type="button" title="효과음">SOUND ON</button>
+        <button class="ghost" id="fullBtn" type="button">FULL SCREEN</button>
+      </div>
+    </header>
+
+    <section class="hero" id="hero">
+      <div class="hero-copy">
+        <span class="eyebrow" id="eyebrow">DATA-ADAPTIVE FAIR DRAW</span>
+        <h1 id="headline">THE LAST <em>ONE</em></h1>
+        <p id="subline">실제 참가자 분포가 매 라운드의 기준을 만듭니다.</p>
+      </div>
+      <div class="hero-metric">
+        <span>CURRENT SURVIVORS</span>
+        <strong id="survivorCount">—</strong>
+        <small id="poolLabel">CSV를 불러오세요</small>
+      </div>
+    </section>
+
+    <section class="control-ribbon" aria-label="추첨 설정">
+      <div class="data-actions">
+        <button class="primary" id="demoBtn" type="button">가상 CSV 불러오기</button>
+        <label class="file-button">
+          실제 CSV 선택
+          <input id="fileInput" type="file" accept=".csv,text/csv" />
+        </label>
+      </div>
+      <div class="pool-switch" role="group" aria-label="추첨군">
+        <button class="pool-btn active" data-pool="manager" type="button">매니저</button>
+        <button class="pool-btn" data-pool="senior" type="button">책임매니저 이상</button>
+      </div>
+      <div class="session-state">
+        <span id="sourceBadge">NO DATA</span>
+        <span id="hashBadge">SHA —</span>
+      </div>
+    </section>
+
+    <section class="show-area" id="showArea">
+      <aside class="round-rail">
+        <div class="round-title">
+          <span id="roundKicker">PREPARE</span>
+          <strong id="roundNumber">00</strong>
+        </div>
+        <div class="trajectory" id="trajectory"></div>
+        <div class="fairness-note">
+          <span>FAIRNESS</span>
+          <strong>Gate 인원 비례 확률</strong>
+          <small>모든 개인은 동일한 최종 당첨확률</small>
+        </div>
+      </aside>
+
+      <section class="main-panel">
+        <div class="rule-panel" id="rulePanel">
+          <div class="rule-copy">
+            <span class="rule-label">NEXT RULE</span>
+            <h2 id="ruleName">CSV를 불러오면 시작됩니다.</h2>
+            <p id="ruleHint">고정된 연도·구간을 쓰지 않고 현재 생존자 분포에 맞춰 기준을 생성합니다.</p>
+          </div>
+          <div class="probability" id="probability">1 / N</div>
+        </div>
+
+        <div class="gates" id="gates" aria-live="polite">
+          <article class="gate gate-a" id="gateA">
+            <span class="gate-tag">GATE A</span>
+            <strong class="gate-label" id="gateALabel">—</strong>
+            <div class="gate-meta"><b id="gateACount">0명</b><span id="gateAPct">0%</span></div>
+          </article>
+          <div class="gate-divider"><span>VS</span></div>
+          <article class="gate gate-b" id="gateB">
+            <span class="gate-tag">GATE B</span>
+            <strong class="gate-label" id="gateBLabel">—</strong>
+            <div class="gate-meta"><b id="gateBCount">0명</b><span id="gateBPct">0%</span></div>
+          </article>
+        </div>
+
+        <div class="status-strip">
+          <div><span>현재</span><strong id="statusBefore">—</strong></div>
+          <div class="status-arrow">→</div>
+          <div><span>목표</span><strong id="statusTarget">—</strong></div>
+          <div class="status-arrow">→</div>
+          <div class="accent"><span>생존</span><strong id="statusAfter">—</strong></div>
+          <p id="statusMessage">가상 데이터를 불러와 프로토타입을 시작하세요.</p>
+        </div>
+
+        <div class="survivor-head">
+          <div>
+            <span>SURVIVOR INDEX</span>
+            <strong id="survivorCaption">이름을 빠르게 찾을 수 있도록 가나다순으로 정렬합니다.</strong>
+          </div>
+          <div class="legend"><i></i> ALIVE <i class="out"></i> OUT</div>
+        </div>
+        <div class="survivor-grid" id="survivorGrid"></div>
+      </section>
+    </section>
+
+    <footer class="command-bar">
+      <div class="key-help">
+        <span><kbd>SPACE</kbd> NEXT</span>
+        <span><kbd>F</kbd> FULL</span>
+        <span><kbd>R</kbd> RESET</span>
+      </div>
+      <button class="reset-btn" id="resetBtn" type="button">RESET</button>
+      <button class="next-btn" id="nextBtn" type="button" disabled>
+        <span id="nextLabel">START DRAW</span>
+        <i>→</i>
+      </button>
+    </footer>
+  </main>
+
+  <dialog id="winnerDialog" class="winner-dialog">
+    <div class="winner-moon"></div>
+    <span class="winner-kicker">2026 CHUSEOK · WINNER</span>
+    <h2 id="winnerName">—</h2>
+    <p id="winnerMeta">—</p>
+    <div class="winner-badge">THE LAST ONE</div>
+    <button id="closeWinner" class="primary" type="button">결과 화면으로 돌아가기</button>
+  </dialog>
+
+  <details class="audit" id="auditPanel">
+    <summary>AUDIT LOG</summary>
+    <pre id="auditLog">No draw yet.</pre>
+  </details>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>

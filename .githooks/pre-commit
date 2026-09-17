@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+blocked='(^|/)(data/private|data/real)/|\.real\.csv$|\.private\.csv$'
+if git diff --cached --name-only | grep -E "$blocked" >/dev/null 2>&1; then
+  echo "BLOCKED: real/private employee data must not be committed." >&2
+  exit 1
+fi
+
+npm test
