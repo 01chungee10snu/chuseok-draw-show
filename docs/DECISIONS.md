@@ -41,3 +41,41 @@ Header와 고유값 그룹은 데이터에 의해 동적으로 바뀌지만, 행
 ## D010 — Production은 Vite dist + GitHub Actions Pages
 
 Box2D WASM을 외부 CDN 없이 행사 페이지와 함께 배포하기 위해 production은 Vite로 빌드한다. GitHub Pages에는 저장소 루트가 아니라 `npm test`와 `npm run build`를 통과한 `dist/` artifact만 배포한다. 실제 HR CSV는 build input이나 `public/`에 포함하지 않으며, `public/data/demo_participants.csv`만 합성 데모 데이터로 허용한다.
+
+## D011 — Physics Quality는 Engine 유무가 아니라 Runtime System으로 판정
+
+`Box2D를 사용한다`는 사실만으로 Show 품질을 충족했다고 판단하지 않는다. v0.7부터 Physics Stage는 긴 연속 코스, 충분한 static/kinematic map entity, 회전 장애물, fixed physics step, Camera Follow/Zoom, 결승 timeScale, stuck/progress watchdog을 하나의 품질 계약으로 가진다. 이 요소들이 실제 live-duration 안에서 동작하는지를 runtime QA로 확인해야 한다.
+
+## D012 — Early Fast Forward → Final Slow Motion
+
+긴 코스를 행사 템포 안에 넣기 위해 Stage 초반은 약 `2.25~3.00x`의 물리시간으로 진행한다. Marble이 결승 구간에 접근하면 Fast Forward를 제거하고 Stage별 `0.20~0.36x` 수준까지 timeScale을 낮추며 Camera Zoom을 동시에 적용한다. 이 속도 조절은 Show 시간에만 영향을 주며 Fair Draw 결과에는 영향을 주지 않는다.
+
+## D013 — Physics Course 중 Roulette Dial 비노출
+
+Header를 선택하는 단계에서는 Roulette UI를 사용하지만, Physics Course가 시작된 뒤에는 중앙 Roulette Dial을 숨긴다. 실제 코스, Marble, 회전 장애물, Camera 이동이 화면의 주인공이 되어야 하며 Roulette Dial이 물리경기보다 강한 시각적 위계를 가져서는 안 된다.
+
+
+## D014 — 범용 행사와 그룹 응원 (v1.0)
+
+제품명은 럭키드로우로 통일하고 행사명·설명·경품·화면 테마와 이미지 배경을 설정으로 분리한다. 처음부터 개인 이름을 경쟁시키지 않고, 현재 참가자의 컬럼으로 그룹을 만들고 같은 편을 함께 응원하는 기존 목적을 보존한다. 이름 하나만 있는 명단도 허용한다. D003의 공개 경계는 모든 소규모 명단을 다루기 위해 1~10명으로 확장한다.
+
+## D015 — 현재 배포 버전의 무대 순서 (D008 대체)
+
+그룹 무대는 5종 물리 코스와 3종 다른 움직임의 게임, 총 8종 shuffle bag으로 선택한다. 이전 버전의 라운드별 고정 순서와 5라운드 이후 반복은 폐기한다. 결선은 단계별 3종 물리 코스를 유지한다. 무대 선택 난수는 생존 편/개인 추첨과 별도 호출이며 연출에는 추첨 결과를 입력하지 않는다.
+
+## D016 — 완전한 분할과 확정 결과 보존
+
+빈 값도 별도 그룹으로 포함하고, 수치 구간에서 동일값을 분리하지 않는다. 균형 잡힌 기준이 없으면 현재 참가자 중 10명을 균등 선택한다. 단계 결과는 연출 전 한 번 확정한다. 재생 실패 시 pending 결과를 보존하고 같은 연출을 재시도한다. 추첨 결과 공개는 연출 완료 이후에만 적용한다.
+
+## D017 — 행사 운영과 범위
+
+당첨자를 수동으로 확인하며 한 명씩 진행하고, 같은 명단의 이전 당첨자는 기본 제외한다. 참가자/당첨 기록은 자동으로 영구 저장하지 않고 CSV와 감사 JSON으로 명시적으로 내보낸다. 외부 이미지·음원 호출 없이 동작한다. 배경을 선택하면 해당 파일을 브라우저에서만 사용한다. 움직임 줄이기는 물리 코스 대신 정적 공개 연출을 사용하며 결과는 동일하다.
+
+## D018 — 원본 v0.7 보존 및 검수 정정
+
+기존 작업트리는 /Users/01chungee10/Github/chuseok-draw-show-v07-backup-20260917.tgz로 먼저 보존했다. 실제 재실행 결과 기존 테스트는 14/15였고 steel-drop의 entity 수가 기준에 못 미쳤다. 대칭 입구 bumper를 추가하고 실제 Box2D 반복 시작/정리까지 검증했다. v0.7 문서의 당시 주장과 v1.0 검증 결과를 혼동하지 않는다.
+
+
+## D019 — 트윈 코스 출입구와 레인별 복구
+
+실제 네 명 결선에서 원형 장애물 내부에 공이 갇히는 사례를 재현했다. 각 링의 위·아래 출입구와 중앙 벽 간격을 확보하고, 정체 복구가 전체 코스 중심 대신 자기 레인의 중심을 향하도록 수정했다. 순간이동이나 추첨 결과에 따른 경로 조정은 사용하지 않는다. 정확한 재현 참가번호를 실제 WASM 테스트로 고정했다.

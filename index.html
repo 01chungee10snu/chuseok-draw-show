@@ -1,177 +1,388 @@
 <!doctype html>
 <html lang="ko">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#05080d" />
-  <title>THE LAST ONE — 2026 Chuseok Draw</title>
-  <link rel="stylesheet" href="./assets/styles.css" />
-</head>
-<body>
-  <canvas id="fx" aria-hidden="true"></canvas>
-  <div class="noise" aria-hidden="true"></div>
-
-  <main class="stage" id="stage">
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-mark">H</span>
-        <div>
-          <strong>2026 CHUSEOK DRAW</strong>
-          <span>경영지원본부 · Prototype v0.6 · BOX2D PHYSICS SHOW</span>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#20211f" />
+    <meta
+      name="description"
+      content="같은 화면을 보며 함께 즐기는 럭키드로우. 행사에 맞춘 화면과 다양한 라운드로 오늘의 주인공을 만나보세요."
+    />
+    <title>럭키드로우</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./assets/styles.css" />
+  </head>
+  <body data-theme="graphite">
+    <div class="event-background" id="eventBackground" aria-hidden="true"></div>
+    <div class="app-shell">
+      <header class="masthead">
+        <a class="wordmark" href="./" aria-label="럭키드로우 처음 화면"
+          ><span class="brand-icon" aria-hidden="true">✳</span> LUCKY DRAW<span
+            class="edition"
+            >/ 01</span
+          ></a
+        >
+        <div class="header-actions">
+          <span class="demo-tag" id="demoTag">가상 명단 · 리허설</span
+          ><button
+            class="icon-button"
+            id="soundButton"
+            aria-pressed="false"
+            title="효과음 켜기"
+          >
+            소리 꺼짐</button
+          ><button class="icon-button" id="screenButton">관객 화면</button
+          ><button
+            class="icon-button"
+            id="settingsButton"
+            aria-haspopup="dialog"
+          >
+            행사 설정 <span aria-hidden="true">↗</span>
+          </button>
         </div>
-      </div>
-      <div class="top-actions">
-        <button class="ghost" id="soundBtn" type="button" title="효과음">SOUND ON</button>
-        <button class="ghost" id="fullBtn" type="button">FULL SCREEN</button>
-      </div>
-    </header>
-
-    <section class="hero" id="hero">
-      <div class="hero-copy">
-        <span class="eyebrow" id="eyebrow">DATA-ADAPTIVE FAIR DRAW</span>
-        <h1 id="headline">THE LAST <em>ONE</em></h1>
-        <p id="subline">매 라운드 새로운 Header와 고유값 그룹이 생존 경쟁을 시작합니다.</p>
-      </div>
-      <div class="hero-metric">
-        <span>CURRENT SURVIVORS</span>
-        <strong id="survivorCount">—</strong>
-        <small id="poolLabel">CSV를 불러오세요</small>
-      </div>
-    </section>
-
-    <section class="control-ribbon" aria-label="추첨 설정">
-      <div class="data-actions">
-        <button class="primary" id="demoBtn" type="button">가상 CSV 불러오기</button>
-        <label class="file-button">
-          실제 CSV 선택
-          <input id="fileInput" type="file" accept=".csv,text/csv" />
-        </label>
-      </div>
-      <div class="pool-switch" role="group" aria-label="추첨군">
-        <button class="pool-btn active" data-pool="manager" type="button">매니저</button>
-        <button class="pool-btn" data-pool="senior" type="button">책임매니저 이상</button>
-      </div>
-      <div class="session-state">
-        <span id="sourceBadge">NO DATA</span>
-        <span id="hashBadge">SHA —</span>
-      </div>
-    </section>
-
-    <section class="show-area" id="showArea">
-      <aside class="round-rail">
-        <div class="round-title">
-          <span id="roundKicker">PREPARE</span>
-          <strong id="roundNumber">00</strong>
-        </div>
-        <div class="trajectory" id="trajectory"></div>
-        <div class="fairness-note">
-          <span>FAIRNESS</span>
-          <strong>Group Gate 인원 비례 확률</strong>
-          <small>그룹이 바뀌어도 개인 최종 확률은 동일</small>
-        </div>
-      </aside>
-
-      <section class="main-panel">
-        <div class="marble-show" id="marbleShow" aria-hidden="true">
-          <canvas id="marbleCanvas" aria-hidden="true"></canvas>
-          <div class="marble-scanline" aria-hidden="true"></div>
-          <div class="marble-hud">
-            <span id="marbleMode">HEADER ROULETTE</span>
-            <strong id="marbleRule">UNIQUE VALUE GROUPS</strong>
-          </div>
-          <div class="roulette-dial" id="rouletteDial">
-            <div class="roulette-ring" id="rouletteRing"></div>
-            <div class="roulette-needle" id="rouletteNeedle"><i></i></div>
-            <div class="roulette-core">
-              <span id="roulettePhase">RULE LOCK</span>
-              <strong id="rouletteValue">READY</strong>
-            </div>
-          </div>
-          <div class="group-deck" id="groupDeck" aria-label="현재 Header 고유값 그룹"></div>
-          <div class="marble-gate marble-gate-a">
-            <span>GATE A</span>
-            <strong id="marbleGateA">—</strong>
-            <b id="marbleGateACount">0</b>
-          </div>
-          <div class="marble-gate marble-gate-b">
-            <span>GATE B</span>
-            <strong id="marbleGateB">—</strong>
-            <b id="marbleGateBCount">0</b>
-          </div>
-          <div class="marble-result" id="marbleResult">MARBLES READY</div>
-        </div>
-
-        <div class="rule-panel" id="rulePanel">
-          <div class="rule-copy">
-            <span class="rule-label">CURRENT HEADER</span>
-            <h2 id="ruleName">CSV를 불러오면 시작됩니다.</h2>
-            <p id="ruleHint">현재 생존자의 Header 고유값을 읽어 그룹을 만들고, 인원 비례 확률로 생존 Gate를 결정합니다.</p>
-          </div>
-          <div class="probability" id="probability">1 / N</div>
-        </div>
-
-        <div class="gates" id="gates" aria-live="polite">
-          <article class="gate gate-a" id="gateA">
-            <span class="gate-tag">GATE A</span>
-            <strong class="gate-label" id="gateALabel">—</strong>
-            <div class="gate-meta"><b id="gateACount">0명</b><span id="gateAPct">0%</span></div>
-          </article>
-          <div class="gate-divider"><span>VS</span></div>
-          <article class="gate gate-b" id="gateB">
-            <span class="gate-tag">GATE B</span>
-            <strong class="gate-label" id="gateBLabel">—</strong>
-            <div class="gate-meta"><b id="gateBCount">0명</b><span id="gateBPct">0%</span></div>
-          </article>
-        </div>
-
-        <div class="status-strip">
-          <div><span>현재</span><strong id="statusBefore">—</strong></div>
-          <div class="status-arrow">→</div>
-          <div><span>목표</span><strong id="statusTarget">—</strong></div>
-          <div class="status-arrow">→</div>
-          <div class="accent"><span>생존</span><strong id="statusAfter">—</strong></div>
-          <p id="statusMessage">가상 데이터를 불러와 프로토타입을 시작하세요.</p>
-        </div>
-
-        <div class="survivor-head">
+      </header>
+      <main id="main">
+        <section class="event-heading">
           <div>
-            <span id="indexLabel">GROUP SURVIVOR INDEX</span>
-            <strong id="survivorCaption">Final 전까지 개인 이름은 숨기고 선택된 그룹으로 생존 여부를 확인합니다.</strong>
+            <p class="overline" id="eventSubtitle">
+              EVERYONE IN. ONE LUCKY MOMENT.
+            </p>
+            <h1 id="eventTitle">럭키드로우</h1>
           </div>
-          <div class="legend" id="indexLegend"><i></i> SURVIVE <i class="out"></i> OUT</div>
+          <div class="event-summary">
+            <span id="poolName">전체 참가자</span>
+            <p>
+              <strong id="remainingCount">0</strong
+              ><span
+                >명<span class="initial-count" id="initialCount">
+                  / 0</span
+                ></span
+              >
+            </p>
+          </div>
+        </section>
+        <div class="experience">
+          <section class="arena" id="arena" aria-label="추첨 경기장">
+            <div class="arena-top">
+              <div class="round-badge">
+                <span class="round-dot"></span
+                ><strong id="roundLabel">READY</strong
+                ><span id="stageLabel">모두의 행운이 모이는 곳</span>
+              </div>
+              <span class="prize-label" id="prizeLabel">오늘의 행운</span>
+            </div>
+            <canvas id="showCanvas" aria-hidden="true"></canvas>
+            <div class="arena-copy" id="arenaCopy">
+              <p class="small-label" id="sceneEyebrow">ARE YOU READY?</p>
+              <h2 id="sceneTitle">오늘의 주인공은<br /><em>누구일까요?</em></h2>
+              <p class="scene-description" id="sceneDescription">
+                같은 그룹을 함께 응원하고,<br />마지막 한 사람을 만나보세요.
+              </p>
+              <div class="ready-pill" id="readyPill">
+                <span class="tiny-mark">✳</span
+                ><span id="readyText">명단을 준비하고 있습니다</span>
+              </div>
+            </div>
+            <div
+              class="scene-caption"
+              id="sceneCaption"
+              aria-live="polite"
+            ></div>
+            <div class="arena-bottom">
+              <span id="phaseLabel">명단 준비</span>
+              <div class="race-progress" aria-hidden="true">
+                <i id="raceProgress"></i>
+              </div>
+              <span id="stageCounter">01 — 08</span>
+            </div>
+            <div
+              class="reveal-layer"
+              id="revealLayer"
+              hidden
+              aria-live="assertive"
+            >
+              <p id="revealEyebrow">NEXT ROUND</p>
+              <h2 id="revealTitle"></h2>
+              <div id="revealDetails"></div>
+              <p id="revealNote"></p>
+            </div>
+          </section>
+          <aside class="round-board" aria-label="진행 상황">
+            <div class="board-head">
+              <span class="small-label" id="boardEyebrow">HOW TO PLAY</span
+              ><strong id="boardTitle">함께 따라가는 추첨</strong>
+            </div>
+            <div id="boardContent" class="board-content"></div>
+            <div class="board-footer">
+              <span class="fair-mark">✓</span>
+              <p id="fairnessText">
+                시작할 때 모든 참가자의<br />당첨 기회는 같습니다.
+              </p>
+              <button
+                class="text-button"
+                id="explainButton"
+                aria-haspopup="dialog"
+              >
+                진행 방식
+              </button>
+            </div>
+          </aside>
         </div>
-        <div class="survivor-grid" id="survivorGrid"></div>
-      </section>
-    </section>
-
-    <footer class="command-bar">
-      <div class="key-help">
-        <span><kbd>SPACE</kbd> NEXT</span>
-        <span><kbd>F</kbd> FULL</span>
-        <span><kbd>R</kbd> RESET</span>
+        <section class="journey" aria-label="지금까지의 추첨">
+          <div class="journey-label">THE JOURNEY</div>
+          <div id="journeyItems" class="journey-items"></div>
+        </section>
+        <footer class="show-controls">
+          <div class="control-note">
+            <span id="statusDot" class="status-dot"></span>
+            <p id="statusText" role="status">명단을 불러오는 중입니다.</p>
+          </div>
+          <div class="control-actions">
+            <button class="secondary-button" id="prepareButton">
+              다시 준비</button
+            ><button class="secondary-button" id="pauseButton" hidden>
+              잠시 멈춤</button
+            ><button class="next-button" id="nextButton" disabled>
+              <span id="nextText">추첨 시작</span
+              ><span class="next-arrow" aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </footer>
+        <p class="screen-help">
+          <kbd>SPACE</kbd> 다음 단계 <span>·</span> <kbd>F</kbd> 전체화면
+          <span>·</span>
+          <span>결과 공개 연출과 공정 추첨은 독립적으로 작동합니다.</span>
+        </p>
+      </main>
+      <footer class="bottom-brand">
+        <span>LUCKY DRAW</span
+        ><span id="versionLabel">함께 기다리는 순간의 즐거움.</span
+        ><button class="text-button" id="recordsButton">
+          추첨 기록 <span id="winnerCount">0</span>
+        </button>
+      </footer>
+    </div>
+    <dialog id="settingsDialog" class="settings-dialog">
+      <form id="settingsForm">
+        <div class="dialog-header">
+          <div>
+            <span class="small-label">MAKE IT YOURS</span>
+            <h2>행사 설정</h2>
+          </div>
+          <button
+            type="button"
+            class="close-button"
+            data-close="settingsDialog"
+            aria-label="설정 닫기"
+          >
+            ×
+          </button>
+        </div>
+        <div class="settings-content">
+          <section class="setting-section">
+            <h3><span>01</span> 오늘의 무대</h3>
+            <label
+              >행사명<input
+                id="titleInput"
+                maxlength="36"
+                placeholder="럭키드로우" /></label
+            ><label
+              >짧은 소개<input
+                id="subtitleInput"
+                maxlength="80"
+                placeholder="우리의 특별한 순간" /></label
+            ><label
+              >경품 이름<input
+                id="prizeInput"
+                maxlength="48"
+                placeholder="오늘의 행운"
+            /></label>
+            <fieldset>
+              <legend>분위기</legend>
+              <div class="theme-options">
+                <label class="theme-choice"
+                  ><input type="radio" name="theme" value="graphite" /><span
+                    class="theme-swatch graphite"
+                  ></span
+                  >차콜</label
+                ><label class="theme-choice"
+                  ><input type="radio" name="theme" value="paper" /><span
+                    class="theme-swatch paper"
+                  ></span
+                  >페이퍼</label
+                ><label class="theme-choice"
+                  ><input type="radio" name="theme" value="night" /><span
+                    class="theme-swatch night"
+                  ></span
+                  >미드나이트</label
+                >
+              </div>
+            </fieldset>
+            <div class="background-actions">
+              <label class="file-button"
+                >배경 이미지 선택<input
+                  id="backgroundInput"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp" /></label
+              ><button type="button" class="text-button" id="clearBackground">
+                배경 지우기
+              </button>
+            </div>
+            <p class="hint">
+              이미지는 이 창에서만 사용합니다. 글자가 잘 보이도록 자동으로
+              어둡게 조정합니다.
+            </p>
+          </section>
+          <section class="setting-section">
+            <h3><span>02</span> 함께할 사람들</h3>
+            <div class="data-actions">
+              <label class="file-button primary-file"
+                >CSV 명단 불러오기<input
+                  id="csvInput"
+                  type="file"
+                  accept=".csv,text/csv" /></label
+              ><button type="button" class="text-button" id="demoButton">
+                가상 명단 사용</button
+              ><button type="button" class="text-button" id="templateButton">
+                CSV 양식
+              </button>
+            </div>
+            <p class="hint">
+              이름 또는 성명 컬럼이 필요합니다. 팀·지역·테이블 등 함께 묶을
+              컬럼을 추가하세요. 실제 명단은 이 브라우저 밖으로 전송하지
+              않습니다.
+            </p>
+            <p class="data-status" id="dataStatus"></p>
+            <div class="field-pair">
+              <label
+                >추첨 대상<select id="poolColumn">
+                  <option value="">전체 참가자</option>
+                </select></label
+              ><label id="poolValueLabel"
+                >선택할 그룹<select id="poolValue">
+                  <option value="">전체</option>
+                </select></label
+              >
+            </div>
+            <div class="hr-presets" id="hrPresets" hidden>
+              <button type="button" data-preset="manager">매니저</button
+              ><button type="button" data-preset="senior">
+                책임매니저 이상 · 임원 포함</button
+              ><button type="button" data-preset="all">전체</button>
+            </div>
+            <label class="checkbox-row"
+              ><input id="excludeWinners" type="checkbox" checked />이번
+              명단에서 이미 당첨된 사람 제외</label
+            >
+            <details class="header-options">
+              <summary>라운드에 사용할 기준</summary>
+              <p class="hint">
+                내 그룹을 알아보기 쉬운 기준을 선택하세요. 이름과 연락처는 추첨
+                기준으로 사용하지 않습니다.
+              </p>
+              <div id="headerChecks" class="header-checks"></div>
+            </details>
+          </section>
+          <section class="setting-section">
+            <h3><span>03</span> 진행 템포</h3>
+            <label
+              >라운드 길이<select id="paceInput">
+                <option value="normal">기본 · 약 12초</option>
+                <option value="long">여유롭게 · 약 18초</option>
+              </select></label
+            ><label class="checkbox-row"
+              ><input type="checkbox" id="motionInput" />움직임 줄이기</label
+            >
+            <p class="hint">
+              매 라운드 게임이 바뀝니다. 진행자가 다음 단계를 직접 시작합니다.
+            </p>
+          </section>
+          <p class="form-error" id="settingsError" role="alert"></p>
+        </div>
+        <div class="dialog-footer">
+          <button type="submit" class="next-button">
+            설정 적용 <span aria-hidden="true">↗</span>
+          </button>
+        </div>
+      </form>
+    </dialog>
+    <dialog id="infoDialog" class="info-dialog">
+      <div class="dialog-header">
+        <h2>모두 함께, 끝까지.</h2>
+        <button
+          class="close-button"
+          data-close="infoDialog"
+          aria-label="설명 닫기"
+        >
+          ×
+        </button>
       </div>
-      <button class="reset-btn" id="resetBtn" type="button">RESET</button>
-      <button class="next-btn" id="nextBtn" type="button" disabled>
-        <span id="nextLabel">START DRAW</span>
-        <i>→</i>
-      </button>
-    </footer>
-  </main>
-
-  <dialog id="winnerDialog" class="winner-dialog">
-    <div class="winner-moon"></div>
-    <span class="winner-kicker">2026 CHUSEOK · WINNER</span>
-    <h2 id="winnerName">—</h2>
-    <p id="winnerMeta">—</p>
-    <div class="winner-badge">THE LAST ONE</div>
-    <button id="closeWinner" class="primary" type="button">결과 화면으로 돌아가기</button>
-  </dialog>
-
-  <details class="audit" id="auditPanel">
-    <summary>AUDIT LOG</summary>
-    <pre id="auditLog">No draw yet.</pre>
-  </details>
-
-  <script type="module" src="./src/app.js"></script>
-</body>
+      <ol class="explain-steps">
+        <li>
+          <strong>내 그룹을 확인해요.</strong>
+          <p>
+            명단에 있는 팀·지역·계절 등의 기준이 매 라운드 바뀝니다. 같은 그룹은
+            같은 결과를 받습니다.
+          </p>
+        </li>
+        <li>
+          <strong>경기를 함께 지켜봐요.</strong>
+          <p>
+            그룹은 두 편에 나뉩니다. 각 편이 선택될 확률은 실제 인원수에
+            비례합니다. 공의 움직임은 결과를 공개하는 연출입니다.
+          </p>
+        </li>
+        <li>
+          <strong>마지막에 이름을 만나요.</strong>
+          <p>
+            10명 이하가 남으면 이름을 공개하고, 남은 사람 중 균등 추첨으로
+            당첨자를 정합니다. 같은 이름은 참가번호로 구별합니다.
+          </p>
+        </li>
+      </ol>
+      <p class="info-note">
+        이미 당첨된 사람을 제외하거나 추첨 대상을 바꾸면, 새로운 추첨의 참가자
+        수를 기준으로 동일한 기회를 부여합니다.
+      </p>
+    </dialog>
+    <dialog id="recordsDialog" class="info-dialog">
+      <div class="dialog-header">
+        <div>
+          <span class="small-label">LUCKY MOMENTS</span>
+          <h2>오늘의 당첨자</h2>
+        </div>
+        <button
+          class="close-button"
+          data-close="recordsDialog"
+          aria-label="기록 닫기"
+        >
+          ×
+        </button>
+      </div>
+      <div id="recordsList"></div>
+      <div class="record-actions">
+        <button id="exportWinners" class="secondary-button">
+          당첨자 CSV 저장</button
+        ><button id="exportAudit" class="secondary-button">
+          추첨 기록 JSON 저장
+        </button>
+      </div>
+      <p class="hint">
+        기록과 명단은 새로고침하면 지워집니다. 다음 행사 전에 필요한 기록을
+        저장하세요.
+      </p>
+    </dialog>
+    <dialog id="confirmDialog" class="confirm-dialog">
+      <h2 id="confirmTitle">다시 준비할까요?</h2>
+      <p id="confirmMessage"></p>
+      <div class="confirm-actions">
+        <button class="secondary-button" id="confirmCancel">취소</button
+        ><button class="next-button" id="confirmAccept">계속</button>
+      </div>
+    </dialog>
+    <script type="module" src="./src/app.js"></script>
+  </body>
 </html>

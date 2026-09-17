@@ -1,88 +1,80 @@
-# CHUSEOK DRAW SHOW
+# 럭키드로우
 
-현대제철 경영지원본부 추석 경품추첨을 위한 **정적 웹 프로토타입**입니다.
+함께 그룹을 응원하고, 마지막 한 사람을 만나는 행사 추첨 앱입니다. 특정 명절이나 회사에 묶이지 않으며 행사 제목·소개·경품·배경을 바꿔 사용할 수 있습니다.
 
-**Live prototype:** https://01chungee10snu.github.io/chuseok-draw-show/
+**[럭키드로우 열기](https://01chungee10snu.github.io/chuseok-draw-show/)** · v1.0.0
 
-## 핵심 원칙
+![럭키드로우 대기 화면](docs/qa-v1/ready.png)
 
-- **실제 투입 CSV의 분포를 매 라운드 다시 읽어** 절단값/그룹을 동적으로 생성합니다.
-- 두 Gate는 가능한 한 균형 있게 구성하되, 실제 Gate 선택은 **현재 Gate 인원수에 비례한 확률**로 수행합니다.
-- 따라서 참가자 개인의 최종 당첨확률은 시작 시점 기준으로 동일한 `1/N`을 유지합니다.
-- 실제 인사 CSV는 브라우저 메모리에서만 처리하며 저장소/서버로 전송하지 않습니다.
-- 휴대폰 뒷자리 기반 규칙은 기본 비활성화합니다.
+## 행사 시작하기
 
-## 현재 프로토타입 · v0.6 Box2D Physics Show
+1. **행사 설정**에서 제목, 소개 문구, 경품과 화면 색상을 정합니다. 차콜·페이퍼·미드나이트 중 선택하거나 JPG/PNG/WebP 배경을 넣습니다.
+2. **CSV 불러오기**로 참가자를 준비합니다. 처음에는 가상 명단 240명이 자동으로 열리므로 바로 리허설할 수 있습니다.
+3. 전체 참가자 또는 팀·지역·직위 등 특정 대상을 선택합니다. 같은 명단의 이전 당첨자 제외는 기본으로 켜져 있습니다.
+4. **추첨 시작**을 누르면 이번 기준과 A/B 편의 그룹이 공개됩니다. 모두 자기 편을 확인한 뒤 **경기 시작**을 누릅니다.
+5. 다음 라운드마다 기준과 게임이 바뀝니다. 10명 이하가 남으면 이름을 공개하고, 필요한 경우 4명 → 2명 → 1명으로 결선을 진행합니다.
+6. **추첨 기록**에서 당첨자 CSV와 추첨 과정 JSON을 저장합니다. 다음 당첨자 뽑기는 새 추첨을 준비합니다.
 
-![Box2D Steel Drop](./docs/box2d-steel-drop.png)
+**관객 화면**은 진행 정보를 줄이고 무대를 키웁니다. 빈 화면에 포커스가 있을 때 Space는 다음 단계, F는 전체화면입니다. 게임 중에는 **잠시 멈춤 / 이어서 진행**을 사용할 수 있습니다. 소리는 기본 꺼짐입니다.
 
-초반에는 개인 이름을 사용하지 않습니다. 매 라운드 현재 생존자 데이터에서 **사용 가능한 Header를 다시 평가**하고, Header Roulette로 하나를 고른 뒤 해당 Header의 고유값을 2~7개 그룹으로 만들어 생존 경쟁을 진행합니다. 생존자가 5~10명에 도달하면 처음으로 Identity Reveal을 수행합니다.
+## 명단 형식
 
-v0.6부터 공정성 엔진과 Show Engine을 더 명확하게 분리했습니다. **Web Crypto + 인원비례 Group Gate 로직이 결과를 먼저 확정**하고, Box2D는 그 결과를 공개하는 물리 연출에만 사용됩니다.
+UTF-8 CSV, 최대 10MB / 20,000명. 엑셀에서는 **CSV UTF-8**로 저장합니다. 필수 컬럼은 `이름` 하나뿐이며 `성명`, `name`도 인식합니다.
 
-| Stage | Renderer | 핵심 움직임 |
-|---|---|---|
-| Round 1 | **STEEL DROP · Box2D** | 중력 낙하 → Steel ramp/bumper 충돌 → Gate reveal |
-| Round 2 | **MOON ORBIT · Canvas** | 보름달 중심 궤도 → 궤도 축소 → Orbit Lock |
-| Round 3 | **PINBALL GRID · Box2D** | 실제 Peg 충돌/반발 → 지그재그 낙하 → Slot reveal |
-| Round 4 | **FURNACE SPLIT · Canvas** | 컨베이어 이동 → 용광로 통과 → Steel Gate |
-| Finalists→4 | **SPOTLIGHT CUT · Canvas** | 다중 Spotlight → 생존자 집중 |
-| 4→2 | **TWIN ORBIT · Canvas** | 좌우 이중 궤도 → Final Two |
-| 2→1 | **LAST MARBLE · Box2D** | 실제 물리 레이스 → Slow Motion → Winner reveal |
+```csv
+이름,참가자ID,팀,테이블,지역
+김하늘,001,기획팀,1,서울
+이바다,002,운영팀,2,부산
+박봄,003,기획팀,1,대전
+정별,004,운영팀,2,서울
+```
 
-![Box2D Pinball Grid](./docs/box2d-pinball-grid.png)
+- `참가자ID`, `사번`, `id`는 선택 사항입니다. 주어진 ID는 중복될 수 없습니다. 앞자리 0은 보존됩니다.
+- 이름이 같아도 별도 참가자로 허용하며 화면의 P001 같은 참가번호로 구별합니다. 한 사람이 중복 등록되지 않았는지는 운영자가 확인해야 합니다.
+- 임의의 팀·지역·테이블 등 컬럼을 사용할 수 있습니다. 현재 참가자 기준 2~7개 범주 또는 동적인 수치 구간으로 묶습니다.
+- 누락값도 별도 그룹에 포함해 참가자를 빠뜨리지 않습니다. 이름·사번·연락처·생년월일 원문은 게임 기준에서 제외합니다.
+- 기존 인사 명단도 지원합니다. 날짜가 유효하면 계절·요일 등의 파생 기준을 만듭니다. 사용하지 않을 기준은 설정에서 끌 수 있습니다.
+- 이름만 있거나 더 나눌 기준이 없으면 참가번호로 10명을 균등 추첨한 뒤 이름을 공개합니다.
+- 새 명단을 불러오면 현재 명단의 진행과 당첨 기록은 초기화됩니다. 잘못된 파일은 기존 명단을 유지하며 오류를 표시합니다.
 
-![Box2D Last Marble](./docs/box2d-last-marble.png)
+## 게임과 화면
 
-- 가상 참가자 CSV 240명
-- 매니저 / 책임매니저 이상 2개 추첨 Pool
-- Header Roulette: 매 라운드 다른 Header 자동 선정
-- Categorical Header: 실제 고유값을 그대로 그룹으로 사용
-- Numeric/Date Header: 현재 생존자 분포에 맞춘 동적 구간 생성
-- 2~7개 Unique Value Group을 두 Survival Lane으로 균형 배치
-- Lane 인원 비례 Weighted Draw로 개인 최종 확률 `1/N` 유지
-- Group phase 동안 개인 이름 완전 비공개
-- 자연스럽게 5~10명 도달 시 Identity Reveal
-- Finalist 공개 후 균등 무작위 Final 4 → 2 → 1
-- Box2D/WASM 물리 Stage와 Canvas Stage를 혼합 운영
-- 물리엔진은 결과를 결정하지 않는 show-only layer
-- Web Crypto 기반 난수
-- 로컬 CSV 업로드
-- Vite production build + GitHub Actions Pages 배포
-- 16:9 행사장 화면 중심 UI
+그룹 라운드에는 8종 게임을 한 번씩 섞어 사용하는 shuffle bag을 적용합니다. 한 묶음 안에서 중복하지 않으며 묶음 경계에서도 같은 게임이 바로 이어지지 않습니다.
 
-## 실행
+| 구분 | 무대 |
+|---|---|
+| Box2D 그룹 코스 | 중력 계단, 회전 미로, 핀볼 바운스, 스윙 게이트, 라스트 게이트 |
+| 다른 움직임의 그룹 게임 | 오비트 랠리, 라이트 그리드, 리듬 터널 |
+| 결선 Box2D 코스 | 스포트라이트 → 트윈 레이스 → 파이널 마블 |
 
-```bash
+Box2D 코스는 10ms 고정 스텝, 회전 장애물, 초반 가속, 카메라 추적, 결승 감속과 정체 복구를 사용합니다. 기본 연출은 12초, 여유 있는 진행은 18초이며 물리 코스는 최대 7초 더 기다릴 수 있습니다. 카메라의 실제 표시 확대는 가독성을 위해 2.4배로 제한합니다. 움직임 줄이기를 선택하거나 운영체제에서 해당 설정을 켜면 2.4초의 정적인 공개 연출을 사용합니다.
+
+![핀볼 바운스](docs/qa-v1/game-pinball-grid.png)
+
+## 공정성과 데이터
+
+현재 참가자가 N명이고 A 편에 n명이 있으면 A 편 선택 확률은 n/N입니다. 선택된 편에서 이후 개인이 1/n의 확률로 당첨되므로 시작 시 개인의 최종 확률은 **1/N**입니다. 마지막 subset도 동일한 확률로 선택합니다. 난수는 Web Crypto의 rejection sampling과 Fisher–Yates shuffle을 사용합니다.
+
+공의 충돌·골인 순서·게임 종류는 추첨 입력이 아닙니다. 각 단계의 추첨을 한 번 확정한 뒤 공개 연출을 실행합니다. 화면 오류나 일시정지 때문에 다시 추첨하지 않습니다. 공은 함께 결과 공개 지점으로 이동하며 실제 선택은 무대의 결과 발표로 확인합니다. 앱의 **진행 방식**에서도 이 구분을 안내합니다.
+
+CSV와 참가자·당첨 기록은 브라우저 메모리에서 처리하며 서버로 보내거나 자동 저장하지 않습니다. 새로고침하면 기록이 사라지므로 행사가 끝나기 전에 저장하세요. 행사 문구·색상·속도 설정만 이 브라우저에 저장합니다. 배경 이미지는 새로 열 때 다시 선택합니다. 감사 JSON에는 이름과 사번 원문을 담지 않지만 그룹 기준·선택 결과는 포함하므로 행사 기록으로 관리합니다.
+
+## 개발과 배포
+
+```sh
 npm ci
-npm run dev
-```
-
-브라우저에서 `http://localhost:4173` 접속.
-
-Production 확인:
-
-```bash
 npm test
+npm run dev
 npm run build
-npm run preview
 ```
 
-`npm run build`는 Box2D WASM, Third-Party Notice와 라이선스를 포함한 `dist/`를 생성합니다.
+Node 24 이상을 권장합니다. GitHub Actions가 main push 후 테스트와 production build를 통과한 dist만 기존 GitHub Pages에 배포합니다. 저장소 URL은 기존 링크를 유지하고 앱 이름은 럭키드로우로 변경했습니다. 실제 참가자 CSV는 public이나 저장소에 추가하지 않습니다.
 
-## 데이터 보안
+- 앱: `src/app.js`
+- 범용 CSV·추첨 모델: `src/lucky-draw-model.js`
+- 연출: `src/show-director.js`
+- 물리 런타임 / 맵: `src/physics-show-engine.js`, `src/physics-stage-maps.js`
+- [설계 결정](docs/DECISIONS.md), [v1.0 검수](docs/QA_v1.0.md), [변경 이력](CHANGELOG.md)
+- Box2D와 참고 소스의 라이선스는 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) 및 `licenses/`에 유지합니다.
 
-실제 직원 CSV는 Git에 올리지 마십시오. `.gitignore`에서 실데이터 패턴과 `data/private/`, `data/real/`을 차단합니다.
-
-프로토타입의 `public/data/demo_participants.csv`는 전부 가상 데이터입니다. 실제 인사 CSV는 `public/` 또는 Git 저장소에 두지 않습니다.
-
-## 조작
-
-- `SPACE`: 다음 라운드 / Final 진행
-- `F`: 전체화면
-- `R`: 현재 Pool 처음부터 재시작
-- `AUDIT LOG`: CSV SHA-256, 각 라운드 Gate 인원/확률/생존자 수 확인
-
-## 변경 이력
-
-주요 설계 변경은 `CHANGELOG.md`, 의사결정은 `docs/DECISIONS.md`에 남깁니다.
+기존 v0.7의 개발 기록과 이미지는 보존했습니다. v1.0 이전 내용은 당시 버전에 대한 기록입니다.
