@@ -29,3 +29,7 @@
 ## D007 — Group Lane 공정성
 
 고유값 그룹 전체를 빠짐없이 두 개 Survival Lane으로 배치한다. 각 Lane이 포함한 실제 인원수를 `n_A`, `n_B`, 현재 생존자를 `N`이라 하면 `P(A)=n_A/N`, `P(B)=n_B/N`으로 선택한다. 선택 Lane 안에서 후속 추첨이 균등하면 특정 개인의 최종확률은 `n_g/N × 1/n_g = 1/N`으로 유지된다. 물리/애니메이션은 이 결과를 공개하는 show layer로만 사용한다.
+
+## D008 — Round별 독립 Show Stage
+
+Header와 고유값 그룹은 데이터에 의해 동적으로 바뀌지만, 행사 전개는 라운드마다 명확히 다른 체험을 제공한다. Group Round 1~4는 각각 `STEEL DROP`, `MOON ORBIT`, `PINBALL GRID`, `FURNACE SPLIT`을 사용한다. Final은 `SPOTLIGHT CUT → TWIN ORBIT → LAST MARBLE` 순으로 별도 연출한다. 각 Stage는 배경 구조, 그룹 이동 궤적, 긴장 단계 문구, 사운드 cue를 독립적으로 가진다. 단, 어떤 Stage도 추첨 결과를 결정하지 않으며 공정 추첨 엔진이 이미 결정한 결과만 공개한다.

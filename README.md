@@ -12,11 +12,23 @@
 - 실제 인사 CSV는 브라우저 메모리에서만 처리하며 저장소/서버로 전송하지 않습니다.
 - 휴대폰 뒷자리 기반 규칙은 기본 비활성화합니다.
 
-## 현재 프로토타입 · v0.4 Group Roulette
+## 현재 프로토타입 · v0.5 Multi-Stage Group Show
 
-![Group Header Round preview](./docs/group-header-round.png)
+![Round 1 — Steel Drop](./docs/stage-1.png)
 
 초반에는 개인 이름을 사용하지 않습니다. 매 라운드 현재 생존자 데이터에서 **사용 가능한 Header를 다시 평가**하고, Header Roulette로 하나를 고른 뒤 해당 Header의 고유값을 2~7개 그룹으로 만들어 생존 경쟁을 진행합니다. 생존자가 5~10명에 도달하면 처음으로 Identity Reveal을 수행합니다.
+
+각 라운드는 동일 애니메이션을 반복하지 않습니다.
+
+| Stage | Show | 핵심 움직임 |
+|---|---|---|
+| Round 1 | **STEEL DROP** | 상단 마그넷 해제 → 수직 낙하 → Steel Gate |
+| Round 2 | **MOON ORBIT** | 보름달 중심 궤도 → 궤도 축소 → Orbit Lock |
+| Round 3 | **PINBALL GRID** | Peg 충돌 → 지그재그 낙하 → Slot Lock |
+| Round 4 | **FURNACE SPLIT** | 컨베이어 이동 → 용광로 통과 → Steel Gate |
+| Finalists→4 | **SPOTLIGHT CUT** | 다중 Spotlight → 생존자 집중 |
+| 4→2 | **TWIN ORBIT** | 좌우 이중 궤도 → Final Two |
+| 2→1 | **LAST MARBLE** | 두 Marble 직선 낙하 → Slow Motion → Winner |
 
 ![Identity Reveal preview](./docs/identity-reveal.png)
 
@@ -30,7 +42,9 @@
 - Group phase 동안 개인 이름 완전 비공개
 - 자연스럽게 5~10명 도달 시 Identity Reveal
 - Finalist 공개 후 균등 무작위 Final 4 → 2 → 1
-- VORTEX / GEAR RUN / PLINKO / REACTOR 계열 kinetic reveal
+- Round별 독립 Show Stage: STEEL DROP / MOON ORBIT / PINBALL GRID / FURNACE SPLIT
+- Final별 독립 Show Stage: SPOTLIGHT CUT / TWIN ORBIT / LAST MARBLE
+- Stage마다 배경 구조·Marble 궤적·긴장 구간·결정 문구·사운드 cue를 별도 적용
 - Web Crypto 기반 난수
 - 로컬 CSV 업로드
 - 16:9 행사장 화면 중심 UI

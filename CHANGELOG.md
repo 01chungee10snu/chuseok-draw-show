@@ -65,3 +65,23 @@
 
 ### Next
 - Replace the prototype kinetic renderer with a Box2D physics canary while keeping the v0.4 Header/Group fairness engine authoritative
+
+## [0.5.0] - 2026-09-17
+
+### Added
+- Dedicated show configuration for each group round instead of reusing one kinetic pattern
+- Round 1 `STEEL DROP`: gravity-style vertical drop, steel rails, magnet-release cue
+- Round 2 `MOON ORBIT`: lunar orbital field, shrinking ellipse motion, orbit-decay tension
+- Round 3 `PINBALL GRID`: peg matrix, bouncing descent, final-slot tension
+- Round 4 `FURNACE SPLIT`: conveyor motion, rotating furnace field, heat-gate reveal
+- Fallback group stage `LAST GATE` when a fifth group round is needed
+- Three distinct final stages: `SPOTLIGHT CUT`, `TWIN ORBIT`, `LAST MARBLE`
+- Stage-specific sound cues and phase wording
+- Automated tests locking the stage sequence and final-stage mapping
+- Chrome runtime verification showing all seven stages in one complete draw
+- Visual QA screenshots for all four group stages plus all three final stages
+
+### Verified flow
+- Manager pool runtime: `150 → 75 → 35 → 18 → 8 → 4 → 2 → 1`
+- Observed stages: `STEEL DROP → MOON ORBIT → PINBALL GRID → FURNACE SPLIT → SPOTLIGHT CUT → TWIN ORBIT → LAST MARBLE`
+- Automated tests: `12/12 PASS`

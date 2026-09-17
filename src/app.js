@@ -11,6 +11,7 @@ import {
   drawHeaderLane,
   headerFairnessStatement,
 } from "./header-round-engine.js";
+import { stageForRound, finalStageForTarget } from "./round-show-config.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -87,6 +88,24 @@ class SoundEngine {
     this.tone(48, Math.min(2.4, seconds * .76), "sine", .012, .08);
   }
   impact() { this.tone(82, .42, "sawtooth", .05); this.tone(164, .18, "triangle", .03, .02); }
+  stageCue(stageId, durationMs = 3000) {
+    if (!state.sound) return;
+    const sec = durationMs / 1000;
+    if (stageId === "steel-drop") {
+      [96, 88, 80].forEach((f, i) => this.tone(f, .22, "sawtooth", .028, i * .18));
+      this.tone(46, Math.min(2.2, sec * .72), "sine", .012, .08);
+    } else if (stageId === "moon-orbit") {
+      [196, 247, 294, 392].forEach((f, i) => this.tone(f, .42, "sine", .012, i * .16));
+      this.tone(58, Math.min(2.5, sec * .82), "triangle", .009, .05);
+    } else if (stageId === "pinball-grid") {
+      for (let i = 0; i < 11; i += 1) this.tone(640 - i * 24, .035, "square", .010, i * .17);
+    } else if (stageId === "furnace-split") {
+      this.tone(42, Math.min(2.7, sec * .86), "sawtooth", .018, .02);
+      [110, 132, 158].forEach((f, i) => this.tone(f, .16, "triangle", .016, .25 + i * .34));
+    } else {
+      [220, 277, 330].forEach((f, i) => this.tone(f, .20, "triangle", .018, i * .22));
+    }
+  }
   final() { [196,247,294,392].forEach((f,i) => this.tone(f,.65,"triangle",.035,i*.06)); }
 }
 const sound = new SoundEngine();
@@ -137,31 +156,54 @@ class MarbleArena {
     if (family === "CAREER") return "GEAR RUN";
     return "VORTEX GATE";
   }
-  drawBackdrop(mode, t) {
+  drawBackdrop(stage, t) {
     const c = this.ctx, w = this.width, h = this.height, cx = w / 2, cy = h * .50;
     c.save();
-    c.globalAlpha = .38;
-    c.strokeStyle = mode === "PLINKO DROP" ? "#35516f" : "#28415d";
     c.lineWidth = 1;
-    if (mode === "PLINKO DROP") {
-      for (let y = 72; y < h - 40; y += 42) {
-        for (let x = 44 + ((Math.round(y / 42) % 2) * 20); x < w - 40; x += 40) {
-          c.fillStyle = "rgba(122,167,207,.38)";
-          c.beginPath(); c.arc(x, y, 2.1, 0, Math.PI * 2); c.fill();
+    if (stage.id === "steel-drop") {
+      c.globalAlpha = .52; c.strokeStyle = "#49647d";
+      for (let x = w * .14; x <= w * .86; x += w * .12) { c.beginPath(); c.moveTo(x, 70); c.lineTo(x, h * .78); c.stroke(); }
+      c.strokeStyle = "#8196aa"; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(w * .14, h * .68); c.lineTo(w * .37, h * .87); c.lineTo(w * .48, h * .87); c.stroke();
+      c.beginPath(); c.moveTo(w * .86, h * .68); c.lineTo(w * .63, h * .87); c.lineTo(w * .52, h * .87); c.stroke();
+      for (let y = 105; y < h * .62; y += 55) { c.globalAlpha = .18; c.fillStyle = "#c9d7e4"; c.fillRect(w * .08, y, w * .84, 2); }
+    } else if (stage.id === "moon-orbit") {
+      const pulse = 1 + Math.sin(t * Math.PI * 6) * .025;
+      c.globalAlpha = .42; c.strokeStyle = "#687c9d";
+      for (let r = Math.min(w, h) * .13; r < Math.min(w, h) * .50; r += Math.min(w, h) * .085) {
+        c.beginPath(); c.ellipse(cx, cy, r * pulse, r * .54 * pulse, -0.12, 0, Math.PI * 2); c.stroke();
+      }
+      const grad = c.createRadialGradient(cx, cy, 4, cx, cy, Math.min(w, h) * .12);
+      grad.addColorStop(0, "rgba(255,245,193,.9)"); grad.addColorStop(.55, "rgba(226,197,117,.32)"); grad.addColorStop(1, "rgba(226,197,117,0)");
+      c.globalAlpha = .8; c.fillStyle = grad; c.beginPath(); c.arc(cx, cy, Math.min(w, h) * .12, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = .32; c.fillStyle = "#d9e7ff";
+      for (let i = 0; i < 34; i += 1) { const x = ((i * 83) % 97) / 97 * w; const y = 60 + (((i * 47) % 89) / 89) * h * .62; c.fillRect(x, y, i % 4 === 0 ? 2 : 1, i % 4 === 0 ? 2 : 1); }
+    } else if (stage.id === "pinball-grid") {
+      c.globalAlpha = .60; c.strokeStyle = "#355875";
+      for (let y = 92; y < h * .74; y += 46) {
+        for (let x = 60 + ((Math.round(y / 46) % 2) * 23); x < w - 50; x += 46) {
+          c.fillStyle = "rgba(111,211,255,.56)"; c.beginPath(); c.arc(x, y, 3.1, 0, Math.PI * 2); c.fill();
+          c.globalAlpha = .14; c.beginPath(); c.arc(x, y, 10, 0, Math.PI * 2); c.stroke(); c.globalAlpha = .60;
         }
       }
+      c.strokeStyle = "#5b7890"; c.lineWidth = 2;
+      c.beginPath(); c.moveTo(w * .10, h * .76); c.lineTo(w * .30, h * .88); c.lineTo(w * .43, h * .88); c.stroke();
+      c.beginPath(); c.moveTo(w * .90, h * .76); c.lineTo(w * .70, h * .88); c.lineTo(w * .57, h * .88); c.stroke();
+    } else if (stage.id === "furnace-split") {
+      c.globalAlpha = .50; c.strokeStyle = "#a15c2d";
+      for (let y = h * .34; y <= h * .66; y += h * .08) { c.beginPath(); c.moveTo(w * .08, y); c.lineTo(w * .92, y); c.stroke(); }
+      for (let i = 0; i < 28; i += 1) {
+        const a = i / 28 * Math.PI * 2 + t * 3;
+        const r1 = Math.min(w, h) * .20, r2 = r1 + (i % 2 ? 10 : 18);
+        c.beginPath(); c.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1); c.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2); c.stroke();
+      }
+      const heat = c.createRadialGradient(cx, cy, 8, cx, cy, Math.min(w, h) * .24);
+      heat.addColorStop(0, "rgba(255,210,80,.72)"); heat.addColorStop(.38, "rgba(255,94,30,.30)"); heat.addColorStop(1, "rgba(255,60,0,0)");
+      c.fillStyle = heat; c.globalAlpha = .9; c.beginPath(); c.arc(cx, cy, Math.min(w, h) * .24, 0, Math.PI * 2); c.fill();
     } else {
-      for (let r = Math.min(w, h) * .16; r < Math.min(w, h) * .54; r += Math.min(w, h) * .095) {
-        c.beginPath(); c.ellipse(cx, cy, r, r * .48, 0, 0, Math.PI * 2); c.stroke();
-      }
-      if (mode === "GEAR RUN") {
-        for (let i = 0; i < 32; i += 1) {
-          const a = i / 32 * Math.PI * 2 + t * 2;
-          const r1 = Math.min(w, h) * .44, r2 = r1 + (i % 2 ? 8 : 15);
-          c.beginPath(); c.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1 * .50);
-          c.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2 * .50); c.stroke();
-        }
-      }
+      c.globalAlpha = .45; c.strokeStyle = "#9d7a35";
+      for (let r = Math.min(w, h) * .16; r < Math.min(w, h) * .48; r += Math.min(w, h) * .08) { c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.stroke(); }
+      c.beginPath(); c.moveTo(cx, 60); c.lineTo(cx, h * .86); c.stroke();
     }
     c.restore();
   }
@@ -196,6 +238,23 @@ class MarbleArena {
         const lane = .08 + m.x0 * .84;
         x = lane * w + Math.sin(m.phase + motionT * 18) * (10 + radius * 1.8);
         y = -20 + motionT * h * .92 + Math.abs(Math.sin(m.phase + motionT * 14)) * 11;
+      } else if (mode === "SPOTLIGHT CUT") {
+        const dir = m.group === 0 ? 1 : -1;
+        const a = m.angle + motionT * 9 * m.speed * dir;
+        const rr = Math.min(w, h) * (.25 + .05 * Math.sin(m.phase + motionT * 7));
+        x = cx + Math.cos(a) * rr;
+        y = cy + Math.sin(a) * rr * .42;
+      } else if (mode === "TWIN ORBIT") {
+        const dir = m.group === 0 ? 1 : -1;
+        const a = m.angle + motionT * 14 * m.speed * dir;
+        const rr = Math.min(w, h) * (.20 + .035 * Math.sin(m.phase + motionT * 9));
+        const offset = m.group === 0 ? -w * .10 : w * .10;
+        x = cx + offset + Math.cos(a) * rr;
+        y = cy + Math.sin(a) * rr * .50;
+      } else if (mode === "LAST MARBLE") {
+        const laneX = m.group === 0 ? w * .42 : w * .58;
+        x = laneX + Math.sin(m.phase + motionT * 15) * 14;
+        y = 54 + motionT * h * .69 + Math.abs(Math.sin(m.phase + motionT * 12)) * 8;
       } else {
         const dir = m.group === 0 ? 1 : -1;
         const spin = mode === "REACTOR SPIN" ? 17 : mode === "GEAR RUN" ? 13 : 11;
@@ -255,8 +314,9 @@ class MarbleArena {
   async play({ groups, labels, selectedIndex, featureName, family, visual, subset = false, final = false }) {
     const token = ++this.token;
     const total = groups[0].length + groups[1].length;
-    const mode = this.modeFor(family, total);
-    const duration = final ? 3900 : subset ? 3400 : 3200;
+    const finalStage = subset ? finalStageForTarget(groups[0].length) : null;
+    const mode = finalStage?.title || this.modeFor(family, total);
+    const duration = final ? 4200 : subset ? (groups[0].length === 2 ? 3650 : 3400) : 3200;
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     const actualDuration = reduced ? 650 : duration;
     const split = groups[0].length / Math.max(1, total);
@@ -265,14 +325,15 @@ class MarbleArena {
     const turns = final ? 8 : 6;
 
     els.marbleShow.dataset.mode = mode;
+    els.marbleShow.dataset.stage = finalStage?.id || "last-gate";
     els.marbleShow.classList.add("active");
     els.marbleShow.setAttribute("aria-hidden", "false");
     els.groupDeck.innerHTML = "";
     els.marbleMode.textContent = mode;
-    els.marbleRule.textContent = `${featureName} · ${visual}`;
+    els.marbleRule.textContent = `${featureName} · ${finalStage?.subtitle || visual}`;
     els.marbleGateA.textContent = labels[0]; els.marbleGateB.textContent = labels[1];
     els.marbleGateACount.textContent = `${groups[0].length}명`; els.marbleGateBCount.textContent = `${groups[1].length}명`;
-    els.roulettePhase.textContent = subset ? "RANDOM LOCK" : "RULE LOCK";
+    els.roulettePhase.textContent = finalStage?.phaseStart || (subset ? "RANDOM LOCK" : "RULE LOCK");
     els.rouletteValue.textContent = `${total}`;
     els.marbleResult.textContent = subset ? "FINALISTS IN MOTION" : "MARBLES IN MOTION";
     els.rouletteRing.style.background = `conic-gradient(from -90deg, #2f9cdf 0deg ${splitDeg}deg, #f39b38 ${splitDeg}deg 360deg)`;
@@ -294,13 +355,15 @@ class MarbleArena {
         if (token !== this.token) { resolve(); return; }
         const t = Math.min(1, (now - start) / actualDuration);
         this.ctx.clearRect(0, 0, this.width, this.height);
-        this.drawBackdrop(mode, t);
+        this.drawBackdrop(finalStage || { id: "last-gate" }, t);
         this.drawMarbles(marbles, selectedIndex, mode, t, selectedRows);
-        const phase = t < .18 ? (subset ? "RANDOM LOCK" : "RULE LOCK") : t < .72 ? "FULL SPEED" : t < .93 ? "FINAL SPIN" : "GATE LOCKED";
+        const phase = finalStage
+          ? (t < .18 ? finalStage.phaseStart : t < .72 ? finalStage.phaseRun : t < .93 ? finalStage.phaseTension : finalStage.phaseLock)
+          : (t < .18 ? (subset ? "RANDOM LOCK" : "RULE LOCK") : t < .72 ? "FULL SPEED" : t < .93 ? "FINAL SPIN" : "GATE LOCKED");
         if (phase !== lastPhase) {
           lastPhase = phase; els.roulettePhase.textContent = phase;
-          if (phase === "FINAL SPIN") els.marbleResult.textContent = "DON'T BLINK";
-          if (phase === "GATE LOCKED") {
+          if (phase === (finalStage?.phaseTension || "FINAL SPIN")) els.marbleResult.textContent = finalStage?.id === "last-marble" ? "SLOW MOTION" : finalStage?.id === "twin-orbit" ? "ONLY TWO REMAIN" : "DON'T BLINK";
+          if (phase === (finalStage?.phaseLock || "GATE LOCKED")) {
             els.rouletteValue.textContent = selectedIndex === 0 ? "A" : "B";
             els.marbleResult.textContent = subset ? `${selectedRows.length} LOCKED` : `${selectedRows.length} SURVIVE`;
           }
@@ -324,7 +387,7 @@ class MarbleArena {
       return `<div class="group-chip lane-${group.lane} ${stateClass}" data-lane="${group.lane}"><span>${group.label}</span><strong>${group.count}</strong><small>명</small></div>`;
     }).join("");
   }
-  drawValueGroupMarbles(round, selectedLane, t) {
+  drawValueGroupMarbles(round, selectedLane, t, stage) {
     const c = this.ctx, w = this.width, h = this.height, cx = w / 2, cy = h * .49;
     const groups = round.groups;
     const maxCount = Math.max(...groups.map((g) => g.count));
@@ -334,12 +397,40 @@ class MarbleArena {
     for (let i = 0; i < groups.length; i += 1) {
       const g = groups[i];
       const seed = (i * 137 + g.count * 31) % 997;
-      const baseAngle = (i / groups.length) * Math.PI * 2 + (seed / 997) * .35;
       const dir = g.lane === 0 ? 1 : -1;
-      const a = baseAngle + t * Math.PI * 8 * dir;
-      const orbit = Math.min(w, h) * (.23 + (i % 3) * .035);
-      let x = cx + Math.cos(a) * orbit;
-      let y = cy + Math.sin(a) * orbit * .50;
+      const p = Math.min(1, t / .72);
+      let x = cx, y = cy;
+
+      if (stage.id === "steel-drop") {
+        const laneX = w * (.18 + ((i + .5) / groups.length) * .64);
+        x = laneX + Math.sin(seed * .03 + p * 18) * (12 + (i % 3) * 5);
+        y = 56 + p * h * .66 + Math.abs(Math.sin(seed + p * 16)) * 15;
+      } else if (stage.id === "moon-orbit") {
+        const baseAngle = (i / groups.length) * Math.PI * 2 + (seed / 997) * .45;
+        const a = baseAngle + p * Math.PI * 8 * dir;
+        const orbit = Math.min(w, h) * (.30 - p * .07 + (i % 2) * .035);
+        x = cx + Math.cos(a) * orbit;
+        y = cy + Math.sin(a) * orbit * .54;
+      } else if (stage.id === "pinball-grid") {
+        const col = .12 + ((i + .5) / groups.length) * .76;
+        const bounce = Math.sin((p * 11 + i * .73) * Math.PI);
+        x = col * w + bounce * (24 + (i % 2) * 11);
+        y = 58 + p * h * .69 + Math.abs(Math.sin(p * 18 + seed)) * 7;
+      } else if (stage.id === "furnace-split") {
+        const forward = g.lane === 0 ? p : 1 - p;
+        x = w * (.12 + forward * .76);
+        y = h * (.35 + (i % 3) * .12) + Math.sin(p * 18 + seed * .02) * 15;
+        const furnacePull = Math.max(0, 1 - Math.abs(p - .5) * 4);
+        x += (cx - x) * furnacePull * .40;
+        y += (cy - y) * furnacePull * .28;
+      } else {
+        const baseAngle = (i / groups.length) * Math.PI * 2 + (seed / 997) * .35;
+        const a = baseAngle + p * Math.PI * 10 * dir;
+        const orbit = Math.min(w, h) * (.25 + (i % 3) * .025);
+        x = cx + Math.cos(a) * orbit;
+        y = cy + Math.sin(a) * orbit * .52;
+      }
+
       let alpha = 1;
       const radius = 25 + Math.sqrt(g.count / maxCount) * 22;
       if (revealT > 0) {
@@ -347,11 +438,11 @@ class MarbleArena {
           const ord = selected.indexOf(g);
           const span = Math.min(w * .58, 150 * Math.max(1, selected.length - 1));
           const tx = selected.length === 1 ? cx : cx - span / 2 + (span * ord) / (selected.length - 1);
-          const ty = h * .69 + Math.sin(ord * 1.9) * 8;
+          const ty = h * .72 + Math.sin(ord * 1.9) * 7;
           x += (tx - x) * ease;
           y += (ty - y) * ease;
         } else {
-          const tx = g.lane === 0 ? w * .10 : w * .90;
+          const tx = g.lane === 0 ? w * .08 : w * .92;
           x += (tx - x) * ease;
           y += (h * 1.16 - y) * ease;
           alpha = Math.max(.04, 1 - ease * .95);
@@ -360,9 +451,11 @@ class MarbleArena {
 
       c.save();
       c.globalAlpha = alpha;
-      const fill = g.lane === selectedLane && revealT > .2 ? "#ffd166" : g.lane === 0 ? "#49bff8" : "#f39b38";
+      const laneFill = g.lane === 0 ? "#49bff8" : "#f39b38";
+      const stageFill = stage.id === "furnace-split" ? (g.lane === 0 ? "#ff8b38" : "#ffc14d") : laneFill;
+      const fill = g.lane === selectedLane && revealT > .2 ? "#ffd166" : stageFill;
       c.fillStyle = fill;
-      c.shadowBlur = g.lane === selectedLane && revealT > .25 ? 24 : 10;
+      c.shadowBlur = g.lane === selectedLane && revealT > .25 ? 26 : 11;
       c.shadowColor = fill;
       c.beginPath(); c.arc(x, y, radius, 0, Math.PI * 2); c.fill();
       c.globalAlpha = alpha * .38;
@@ -378,17 +471,26 @@ class MarbleArena {
       c.restore();
     }
   }
-  async playHeaderRound(round, result, candidates) {
+  async playHeaderRound(round, result, candidates, roundNo) {
     const token = ++this.token;
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
     const total = round.laneCounts[0] + round.laneCounts[1];
+    const stage = stageForRound(roundNo);
     const headerMs = reduced ? 180 : 1050;
-    const raceMs = reduced ? 650 : 3100;
+    const raceDuration = {
+      "steel-drop": 3000,
+      "moon-orbit": 3400,
+      "pinball-grid": 3150,
+      "furnace-split": 3500,
+      "last-gate": 3650,
+    }[stage.id] || 3200;
+    const raceMs = reduced ? 650 : raceDuration;
 
+    els.marbleShow.dataset.stage = "header-scan";
     els.marbleShow.classList.add("active");
     els.marbleShow.setAttribute("aria-hidden", "false");
     this.resize();
-    els.marbleMode.textContent = "HEADER ROULETTE";
+    els.marbleMode.textContent = `ROUND ${String(roundNo).padStart(2, "0")} · HEADER ROULETTE`;
     els.marbleRule.textContent = "SELECT NEXT HEADER";
     els.roulettePhase.textContent = "HEADER SCAN";
     els.rouletteValue.textContent = "?";
@@ -411,19 +513,19 @@ class MarbleArena {
     clearInterval(timer);
     if (token !== this.token) return;
 
-    els.marbleRule.textContent = round.featureName;
+    els.marbleShow.dataset.stage = stage.id;
+    els.marbleMode.textContent = stage.title;
+    els.marbleRule.textContent = `${round.featureName} · ${stage.subtitle}`;
     els.roulettePhase.textContent = "HEADER LOCKED";
     els.rouletteValue.textContent = `${round.groupCount}`;
-    els.marbleResult.textContent = `${round.groupCount} UNIQUE GROUPS CREATED`;
+    els.marbleResult.textContent = `${round.groupCount} UNIQUE GROUPS · ${stage.title}`;
     sound.impact();
     this.renderGroupDeck(round);
-    await wait(reduced ? 80 : 380);
+    await wait(reduced ? 80 : 420);
 
     const split = round.laneCounts[0] / total;
     const splitDeg = split * 360;
     const targetDeg = result.index === 0 ? Math.max(8, splitDeg * .52) : splitDeg + Math.max(8, (360 - splitDeg) * .52);
-    els.marbleMode.textContent = this.modeFor(round.family, round.groupCount);
-    els.marbleRule.textContent = `${round.featureName} · UNIQUE VALUE RACE`;
     els.marbleGateA.textContent = compactGroupLabels(round.lanes[0]);
     els.marbleGateB.textContent = compactGroupLabels(round.lanes[1]);
     els.marbleGateACount.textContent = `${round.laneCounts[0]}명`;
@@ -431,6 +533,7 @@ class MarbleArena {
     els.rouletteRing.style.background = `conic-gradient(from -90deg, #2f9cdf 0deg ${splitDeg}deg, #f39b38 ${splitDeg}deg 360deg)`;
     els.rouletteNeedle.getAnimations().forEach((a) => a.cancel());
     els.rouletteNeedle.animate([{ transform:"rotate(0deg)" },{ transform:`rotate(${6 * 360 + targetDeg}deg)` }],{ duration:raceMs * .88,easing:"cubic-bezier(.10,.62,.14,1)",fill:"forwards" });
+    sound.stageCue(stage.id, raceMs);
     sound.roulette(raceMs * .88);
 
     const start = performance.now();
@@ -440,15 +543,15 @@ class MarbleArena {
         if (token !== this.token) { resolve(); return; }
         const t = Math.min(1, (now - start) / raceMs);
         this.ctx.clearRect(0, 0, this.width, this.height);
-        this.drawBackdrop(this.modeFor(round.family, round.groupCount), t);
-        this.drawValueGroupMarbles(round, result.index, t);
-        const phase = t < .16 ? "GROUP LAUNCH" : t < .68 ? "FULL SPEED" : t < .92 ? "FINAL SPIN" : "GATE LOCKED";
+        this.drawBackdrop(stage, t);
+        this.drawValueGroupMarbles(round, result.index, t, stage);
+        const phase = t < .16 ? stage.phaseStart : t < .68 ? stage.phaseRun : t < .92 ? stage.phaseTension : stage.phaseLock;
         if (phase !== lastPhase) {
           lastPhase = phase; els.roulettePhase.textContent = phase;
-          if (phase === "FINAL SPIN") els.marbleResult.textContent = "WHICH GROUPS SURVIVE?";
-          if (phase === "GATE LOCKED") {
+          if (phase === stage.phaseTension) els.marbleResult.textContent = stage.id === "furnace-split" ? "HEAT IS RISING" : stage.id === "moon-orbit" ? "ORBIT IS COLLAPSING" : stage.id === "pinball-grid" ? "ONE LAST BOUNCE" : "DON'T BLINK";
+          if (phase === stage.phaseLock) {
             els.rouletteValue.textContent = result.index === 0 ? "A" : "B";
-            els.marbleResult.textContent = `${result.survivors.length} SURVIVE`;
+            els.marbleResult.textContent = `${result.survivors.length} SURVIVE · ${stage.title}`;
             this.renderGroupDeck(round, result.index);
           }
         }
@@ -457,8 +560,8 @@ class MarbleArena {
       requestAnimationFrame(frame);
     });
 
-    sound.impact(); shakeStage(); fx.burst(innerWidth * .5, innerHeight * .46, 82, true);
-    await wait(reduced ? 120 : 620);
+    sound.impact(); shakeStage(); fx.burst(innerWidth * .5, innerHeight * .46, stage.id === "furnace-split" ? 110 : 82, true);
+    await wait(reduced ? 120 : 650);
     els.marbleShow.classList.remove("active");
     els.marbleShow.setAttribute("aria-hidden", "true");
     await wait(reduced ? 60 : 220);
@@ -627,7 +730,7 @@ async function executeDynamicRound() {
   state.currentResult = result;
   els.gateA.classList.add("spinning"); els.gateB.classList.add("spinning");
   state.audit.push(`R${state.roundNo} HEADER ${round.feature} | groups=${round.groupCount} | A=${round.laneCounts[0]} B=${round.laneCounts[1]}`);
-  await marbleArena.playHeaderRound(round, result, candidates);
+  await marbleArena.playHeaderRound(round, result, candidates, state.roundNo);
 
   resetGateClasses();
   const selectedGate = result.index === 0 ? els.gateA : els.gateB;
