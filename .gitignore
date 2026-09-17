@@ -1,0 +1,19 @@
+# Real employee / private input data must never be committed.
+data/private/
+data/real/
+*.real.csv
+*.private.csv
+employee*.csv
+participants*.csv
+!data/demo_participants.csv
+
+# Local runtime / editor noise
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# Optional future build outputs
+node_modules/
+dist/
+coverage/
