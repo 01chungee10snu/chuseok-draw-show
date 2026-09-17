@@ -12,20 +12,25 @@
 - 실제 인사 CSV는 브라우저 메모리에서만 처리하며 저장소/서버로 전송하지 않습니다.
 - 휴대폰 뒷자리 기반 규칙은 기본 비활성화합니다.
 
-## 현재 프로토타입 · v0.3 Marble Roulette
+## 현재 프로토타입 · v0.4 Group Roulette
 
-![Marble Roulette preview](./docs/marble-roulette-mid.png)
+![Group Header Round preview](./docs/group-header-round.png)
 
-각 라운드는 공정 추첨 결과를 먼저 확정한 뒤, Marble Roulette가 그 결과를 공개합니다. 연출은 추첨 결과를 바꾸지 않습니다.
+초반에는 개인 이름을 사용하지 않습니다. 매 라운드 현재 생존자 데이터에서 **사용 가능한 Header를 다시 평가**하고, Header Roulette로 하나를 고른 뒤 해당 Header의 고유값을 2~7개 그룹으로 만들어 생존 경쟁을 진행합니다. 생존자가 5~10명에 도달하면 처음으로 Identity Reveal을 수행합니다.
+
+![Identity Reveal preview](./docs/identity-reveal.png)
 
 - 가상 참가자 CSV 240명
 - 매니저 / 책임매니저 이상 2개 추첨 Pool
-- Dynamic Round Planner
-- 조직/직무/생일/입사/이름 기반 동적 Gate
-- Gate 인원 비례 Weighted Draw
-- 라운드별 Marble Roulette: VORTEX / GEAR RUN / PLINKO / REACTOR
-- Final 8 → 4 → 2 → 1 Marble Lock / Last Marble 연출
-- Gate 비율을 그대로 반영한 Weighted Roulette Dial
+- Header Roulette: 매 라운드 다른 Header 자동 선정
+- Categorical Header: 실제 고유값을 그대로 그룹으로 사용
+- Numeric/Date Header: 현재 생존자 분포에 맞춘 동적 구간 생성
+- 2~7개 Unique Value Group을 두 Survival Lane으로 균형 배치
+- Lane 인원 비례 Weighted Draw로 개인 최종 확률 `1/N` 유지
+- Group phase 동안 개인 이름 완전 비공개
+- 자연스럽게 5~10명 도달 시 Identity Reveal
+- Finalist 공개 후 균등 무작위 Final 4 → 2 → 1
+- VORTEX / GEAR RUN / PLINKO / REACTOR 계열 kinetic reveal
 - Web Crypto 기반 난수
 - 로컬 CSV 업로드
 - 16:9 행사장 화면 중심 UI

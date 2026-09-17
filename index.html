@@ -17,7 +17,7 @@
         <span class="brand-mark">H</span>
         <div>
           <strong>2026 CHUSEOK DRAW</strong>
-          <span>경영지원본부 · Prototype v0.3 · MARBLE ROULETTE</span>
+          <span>경영지원본부 · Prototype v0.4 · GROUP ROULETTE</span>
         </div>
       </div>
       <div class="top-actions">
@@ -30,7 +30,7 @@
       <div class="hero-copy">
         <span class="eyebrow" id="eyebrow">DATA-ADAPTIVE FAIR DRAW</span>
         <h1 id="headline">THE LAST <em>ONE</em></h1>
-        <p id="subline">실제 참가자 분포가 매 라운드의 기준을 만듭니다.</p>
+        <p id="subline">매 라운드 새로운 Header와 고유값 그룹이 생존 경쟁을 시작합니다.</p>
       </div>
       <div class="hero-metric">
         <span>CURRENT SURVIVORS</span>
@@ -66,8 +66,8 @@
         <div class="trajectory" id="trajectory"></div>
         <div class="fairness-note">
           <span>FAIRNESS</span>
-          <strong>Gate 인원 비례 확률</strong>
-          <small>모든 개인은 동일한 최종 당첨확률</small>
+          <strong>Group Gate 인원 비례 확률</strong>
+          <small>그룹이 바뀌어도 개인 최종 확률은 동일</small>
         </div>
       </aside>
 
@@ -76,8 +76,8 @@
           <canvas id="marbleCanvas" aria-hidden="true"></canvas>
           <div class="marble-scanline" aria-hidden="true"></div>
           <div class="marble-hud">
-            <span id="marbleMode">MARBLE ROULETTE</span>
-            <strong id="marbleRule">DYNAMIC GATE</strong>
+            <span id="marbleMode">HEADER ROULETTE</span>
+            <strong id="marbleRule">UNIQUE VALUE GROUPS</strong>
           </div>
           <div class="roulette-dial" id="rouletteDial">
             <div class="roulette-ring" id="rouletteRing"></div>
@@ -87,6 +87,7 @@
               <strong id="rouletteValue">READY</strong>
             </div>
           </div>
+          <div class="group-deck" id="groupDeck" aria-label="현재 Header 고유값 그룹"></div>
           <div class="marble-gate marble-gate-a">
             <span>GATE A</span>
             <strong id="marbleGateA">—</strong>
@@ -102,9 +103,9 @@
 
         <div class="rule-panel" id="rulePanel">
           <div class="rule-copy">
-            <span class="rule-label">NEXT RULE</span>
+            <span class="rule-label">CURRENT HEADER</span>
             <h2 id="ruleName">CSV를 불러오면 시작됩니다.</h2>
-            <p id="ruleHint">고정된 연도·구간을 쓰지 않고 현재 생존자 분포에 맞춰 기준을 생성합니다.</p>
+            <p id="ruleHint">현재 생존자의 Header 고유값을 읽어 그룹을 만들고, 인원 비례 확률로 생존 Gate를 결정합니다.</p>
           </div>
           <div class="probability" id="probability">1 / N</div>
         </div>
@@ -134,10 +135,10 @@
 
         <div class="survivor-head">
           <div>
-            <span>SURVIVOR INDEX</span>
-            <strong id="survivorCaption">이름을 빠르게 찾을 수 있도록 가나다순으로 정렬합니다.</strong>
+            <span id="indexLabel">GROUP SURVIVOR INDEX</span>
+            <strong id="survivorCaption">Final 전까지 개인 이름은 숨기고 선택된 그룹으로 생존 여부를 확인합니다.</strong>
           </div>
-          <div class="legend"><i></i> ALIVE <i class="out"></i> OUT</div>
+          <div class="legend" id="indexLegend"><i></i> SURVIVE <i class="out"></i> OUT</div>
         </div>
         <div class="survivor-grid" id="survivorGrid"></div>
       </section>

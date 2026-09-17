@@ -21,7 +21,7 @@
 ## [0.3.0] - 2026-09-17
 
 ### Added
-- Full-panel Marble Roulette reveal overlay for every draw stage
+- Full-panel marble-style kinetic reveal overlay for every draw stage
 - Four kinetic visual modes: VORTEX GATE, GEAR RUN, PLINKO DROP, REACTOR SPIN
 - Population-proportional roulette sectors and animated landing needle
 - Finalist Marble Lock for 18→8→4→2 and Last Marble reveal for 2→1
@@ -39,5 +39,29 @@
 - GitHub Pages: `https://01chungee10snu.github.io/chuseok-draw-show/`
 - Pages source: `main /`
 
+## [0.4.0] - 2026-09-17
+
+### Added
+- Header Roulette that reevaluates eligible headers from the current survivor population every round
+- Unique-value Group Engine for categorical headers with 2~7 actual values
+- Dynamic numeric/date bucketing based on the current survivor distribution
+- Balanced two-lane assignment of value groups while preserving every current survivor
+- Group-only show phase with individual identities sealed
+- Automatic Identity Reveal once the survivor population naturally reaches 5~10 people
+- Group-marble animation sized by actual group population
+- Dedicated validation suite for group coverage, balance, no duplicate membership, used-header exclusion, and exact `1/N` fairness algebra
+- Chrome runtime verification for both pools
+- Visual QA screenshots: `group-header-round.png`, `identity-reveal.png`
+
+### Changed
+- Early/mid draw progression is now Header → Unique Values → Group Race instead of individual-marble presentation
+- Exact Final 8 forcing was removed; the group phase now ends naturally in the 5~10 range
+- Final phase becomes Identity Reveal → Final 4 → 2 → 1
+- Brand/UI wording changed to Group Roulette; no third-party project branding is used
+
+### Verified flows
+- Manager pool: `150 → 75 → 37 → 19 → 8 → 4 → 2 → 1`
+- Senior+ pool: `90 → 43 → 24 → 12 → 6` then Identity Reveal
+
 ### Next
-- Live-event usability tuning after human review
+- Replace the prototype kinetic renderer with a Box2D physics canary while keeping the v0.4 Header/Group fairness engine authoritative
