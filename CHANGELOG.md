@@ -18,6 +18,10 @@
 - Local pre-commit / pre-push validation hooks
 - 1600×900 headless-browser render verification and preview image
 
+### Deployment
+- GitHub repository: `01chungee10snu/chuseok-draw-show`
+- GitHub Pages: `https://01chungee10snu.github.io/chuseok-draw-show/`
+- Pages source: `main /`
+
 ### Next
-- GitHub Pages deployment
 - Live-event usability tuning after human review

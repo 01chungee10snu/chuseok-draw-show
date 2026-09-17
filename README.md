@@ -2,6 +2,8 @@
 
 현대제철 경영지원본부 추석 경품추첨을 위한 **정적 웹 프로토타입**입니다.
 
+**Live prototype:** https://01chungee10snu.github.io/chuseok-draw-show/
+
 ## 핵심 원칙
 
 - **실제 투입 CSV의 분포를 매 라운드 다시 읽어** 절단값/그룹을 동적으로 생성합니다.
