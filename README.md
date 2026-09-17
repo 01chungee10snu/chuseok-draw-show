@@ -12,16 +12,20 @@
 - 실제 인사 CSV는 브라우저 메모리에서만 처리하며 저장소/서버로 전송하지 않습니다.
 - 휴대폰 뒷자리 기반 규칙은 기본 비활성화합니다.
 
-## 현재 프로토타입
+## 현재 프로토타입 · v0.3 Marble Roulette
 
-![Prototype preview](./docs/prototype-preview.png)
+![Marble Roulette preview](./docs/marble-roulette-mid.png)
+
+각 라운드는 공정 추첨 결과를 먼저 확정한 뒤, Marble Roulette가 그 결과를 공개합니다. 연출은 추첨 결과를 바꾸지 않습니다.
 
 - 가상 참가자 CSV 240명
 - 매니저 / 책임매니저 이상 2개 추첨 Pool
 - Dynamic Round Planner
 - 조직/직무/생일/입사/이름 기반 동적 Gate
 - Gate 인원 비례 Weighted Draw
-- Final 8 → 4 → 2 → 1 연출
+- 라운드별 Marble Roulette: VORTEX / GEAR RUN / PLINKO / REACTOR
+- Final 8 → 4 → 2 → 1 Marble Lock / Last Marble 연출
+- Gate 비율을 그대로 반영한 Weighted Roulette Dial
 - Web Crypto 기반 난수
 - 로컬 CSV 업로드
 - 16:9 행사장 화면 중심 UI

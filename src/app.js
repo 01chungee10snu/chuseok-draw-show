@@ -22,6 +22,9 @@ const els = {
   survivorGrid: $("survivorGrid"), survivorCaption: $("survivorCaption"), nextBtn: $("nextBtn"), nextLabel: $("nextLabel"),
   resetBtn: $("resetBtn"), fullBtn: $("fullBtn"), soundBtn: $("soundBtn"), auditLog: $("auditLog"),
   winnerDialog: $("winnerDialog"), winnerName: $("winnerName"), winnerMeta: $("winnerMeta"), closeWinner: $("closeWinner"), fx: $("fx"),
+  marbleShow: $("marbleShow"), marbleCanvas: $("marbleCanvas"), marbleMode: $("marbleMode"), marbleRule: $("marbleRule"),
+  rouletteRing: $("rouletteRing"), rouletteNeedle: $("rouletteNeedle"), roulettePhase: $("roulettePhase"), rouletteValue: $("rouletteValue"),
+  marbleGateA: $("marbleGateA"), marbleGateB: $("marbleGateB"), marbleGateACount: $("marbleGateACount"), marbleGateBCount: $("marbleGateBCount"), marbleResult: $("marbleResult"),
 };
 
 const state = {
@@ -69,6 +72,16 @@ class SoundEngine {
     o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + dur);
   }
   scan() { [0,1,2,3,4,5].forEach((i) => this.tone(350 + i * 45, .05, "square", .018, i * .11)); }
+  roulette(durationMs = 3200) {
+    const seconds = durationMs / 1000;
+    const ticks = 27;
+    for (let i = 0; i < ticks; i += 1) {
+      const u = i / (ticks - 1);
+      const delay = seconds * (.50 * u + .50 * u * u);
+      this.tone(510 - u * 160, .035 + u * .025, "square", .014 + u * .01, delay);
+    }
+    this.tone(48, Math.min(2.4, seconds * .76), "sine", .012, .08);
+  }
   impact() { this.tone(82, .42, "sawtooth", .05); this.tone(164, .18, "triangle", .03, .02); }
   final() { [196,247,294,392].forEach((f,i) => this.tone(f,.65,"triangle",.035,i*.06)); }
 }
@@ -92,6 +105,224 @@ class FX {
   }
 }
 const fx = new FX(els.fx);
+
+class MarbleArena {
+  constructor(canvas) {
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
+    this.width = 1;
+    this.height = 1;
+    this.dpr = 1;
+    this.token = 0;
+    this.resizeObserver = new ResizeObserver(() => this.resize());
+    this.resizeObserver.observe(els.marbleShow);
+  }
+  resize() {
+    const rect = els.marbleShow.getBoundingClientRect();
+    const w = Math.max(1, rect.width), h = Math.max(1, rect.height);
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    this.width = w; this.height = h; this.dpr = dpr;
+    this.canvas.width = Math.round(w * dpr); this.canvas.height = Math.round(h * dpr);
+    this.canvas.style.width = `${w}px`; this.canvas.style.height = `${h}px`;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  modeFor(family, total) {
+    if (family === "FINAL") return total <= 8 ? "DUEL LOCK" : "FINALIST LOCK";
+    if (["BIRTH", "MYSTERY"].includes(family)) return "PLINKO DROP";
+    if (["NAME", "NUMBER"].includes(family)) return "REACTOR SPIN";
+    if (family === "CAREER") return "GEAR RUN";
+    return "VORTEX GATE";
+  }
+  drawBackdrop(mode, t) {
+    const c = this.ctx, w = this.width, h = this.height, cx = w / 2, cy = h * .50;
+    c.save();
+    c.globalAlpha = .38;
+    c.strokeStyle = mode === "PLINKO DROP" ? "#35516f" : "#28415d";
+    c.lineWidth = 1;
+    if (mode === "PLINKO DROP") {
+      for (let y = 72; y < h - 40; y += 42) {
+        for (let x = 44 + ((Math.round(y / 42) % 2) * 20); x < w - 40; x += 40) {
+          c.fillStyle = "rgba(122,167,207,.38)";
+          c.beginPath(); c.arc(x, y, 2.1, 0, Math.PI * 2); c.fill();
+        }
+      }
+    } else {
+      for (let r = Math.min(w, h) * .16; r < Math.min(w, h) * .54; r += Math.min(w, h) * .095) {
+        c.beginPath(); c.ellipse(cx, cy, r, r * .48, 0, 0, Math.PI * 2); c.stroke();
+      }
+      if (mode === "GEAR RUN") {
+        for (let i = 0; i < 32; i += 1) {
+          const a = i / 32 * Math.PI * 2 + t * 2;
+          const r1 = Math.min(w, h) * .44, r2 = r1 + (i % 2 ? 8 : 15);
+          c.beginPath(); c.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1 * .50);
+          c.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2 * .50); c.stroke();
+        }
+      }
+    }
+    c.restore();
+  }
+  makeMarbles(groups) {
+    const all = [];
+    groups.forEach((group, gi) => group.forEach((row, idx) => {
+      const seed = (idx * 37 + gi * 101) % 997;
+      all.push({
+        row, group: gi, idx,
+        angle: (seed / 997) * Math.PI * 2,
+        radius: .22 + ((seed * 13) % 100) / 100 * .24,
+        speed: .78 + ((seed * 17) % 100) / 100 * .48,
+        phase: ((seed * 23) % 100) / 100 * Math.PI * 2,
+        x0: ((seed * 29) % 100) / 100,
+      });
+    }));
+    return all;
+  }
+  drawMarbles(marbles, selectedIndex, mode, t, selectedRows) {
+    const c = this.ctx, w = this.width, h = this.height, cx = w / 2, cy = h * .50;
+    const total = marbles.length;
+    const selectedOrder = new Map(selectedRows.map((r, i) => [r._id, i]));
+    const selectedN = selectedRows.length;
+    const radius = total > 120 ? 3.0 : total > 70 ? 3.8 : total > 30 ? 4.7 : total > 12 ? 6.0 : 8.0;
+    const motionT = Math.min(1, t / .78);
+    const revealT = Math.max(0, Math.min(1, (t - .72) / .28));
+    const ease = revealT * revealT * (3 - 2 * revealT);
+
+    for (const m of marbles) {
+      let x, y;
+      if (mode === "PLINKO DROP") {
+        const lane = .08 + m.x0 * .84;
+        x = lane * w + Math.sin(m.phase + motionT * 18) * (10 + radius * 1.8);
+        y = -20 + motionT * h * .92 + Math.abs(Math.sin(m.phase + motionT * 14)) * 11;
+      } else {
+        const dir = m.group === 0 ? 1 : -1;
+        const spin = mode === "REACTOR SPIN" ? 17 : mode === "GEAR RUN" ? 13 : 11;
+        const a = m.angle + motionT * spin * m.speed * dir;
+        const rr = Math.min(w, h) * m.radius * (1 + .08 * Math.sin(m.phase + motionT * 10));
+        x = cx + Math.cos(a) * rr;
+        y = cy + Math.sin(a) * rr * .52;
+      }
+
+      let alpha = .92;
+      let fill = m.group === 0 ? "#56c6ff" : "#ff9f43";
+      if (revealT > 0) {
+        if (m.group === selectedIndex) {
+          const ord = selectedOrder.get(m.row._id) ?? 0;
+          let tx, ty;
+          if (selectedN <= 8) {
+            const spread = Math.min(84, w * .62 / Math.max(1, selectedN - 1));
+            tx = cx + (ord - (selectedN - 1) / 2) * spread;
+            ty = h * .70 + Math.sin(ord * 1.7) * 8;
+          } else {
+            const col = ord % Math.max(4, Math.ceil(Math.sqrt(selectedN * 1.6)));
+            const cols = Math.max(4, Math.ceil(Math.sqrt(selectedN * 1.6)));
+            const row = Math.floor(ord / cols);
+            tx = w * .28 + (col / Math.max(1, cols - 1)) * w * .44;
+            ty = h * .64 + row * 10;
+          }
+          x = x + (tx - x) * ease; y = y + (ty - y) * ease;
+          fill = "#ffd166"; alpha = 1;
+        } else {
+          const side = m.group === 0 ? .18 : .82;
+          x = x + (w * side - x) * ease;
+          y = y + ((h * 1.18) - y) * ease;
+          alpha = Math.max(.03, 1 - ease * .96);
+          fill = "#5f6874";
+        }
+      }
+
+      c.save();
+      c.globalAlpha = alpha;
+      c.fillStyle = fill;
+      if (m.group === selectedIndex && revealT > .35) {
+        c.shadowBlur = 12; c.shadowColor = "rgba(255,205,96,.7)";
+      }
+      c.beginPath(); c.arc(x, y, radius, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = alpha * .65;
+      c.fillStyle = "#ffffff";
+      c.beginPath(); c.arc(x - radius * .3, y - radius * .32, Math.max(1, radius * .28), 0, Math.PI * 2); c.fill();
+      c.restore();
+
+      if (selectedN <= 8 && m.group === selectedIndex && revealT > .55) {
+        c.save(); c.globalAlpha = Math.min(1, (revealT - .55) * 3.5);
+        c.fillStyle = "#fff5d8"; c.font = "700 11px system-ui, sans-serif"; c.textAlign = "center";
+        c.fillText(`${m.row._drawId} ${m.row._name}`, x, y - radius - 10); c.restore();
+      }
+    }
+  }
+  async play({ groups, labels, selectedIndex, featureName, family, visual, subset = false, final = false }) {
+    const token = ++this.token;
+    const total = groups[0].length + groups[1].length;
+    const mode = this.modeFor(family, total);
+    const duration = final ? 3900 : subset ? 3400 : 3200;
+    const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    const actualDuration = reduced ? 650 : duration;
+    const split = groups[0].length / Math.max(1, total);
+    const splitDeg = split * 360;
+    const targetDeg = selectedIndex === 0 ? Math.max(8, splitDeg * .52) : splitDeg + Math.max(8, (360 - splitDeg) * .52);
+    const turns = final ? 8 : 6;
+
+    els.marbleShow.dataset.mode = mode;
+    els.marbleShow.classList.add("active");
+    els.marbleShow.setAttribute("aria-hidden", "false");
+    els.marbleMode.textContent = mode;
+    els.marbleRule.textContent = `${featureName} · ${visual}`;
+    els.marbleGateA.textContent = labels[0]; els.marbleGateB.textContent = labels[1];
+    els.marbleGateACount.textContent = `${groups[0].length}명`; els.marbleGateBCount.textContent = `${groups[1].length}명`;
+    els.roulettePhase.textContent = subset ? "RANDOM LOCK" : "RULE LOCK";
+    els.rouletteValue.textContent = `${total}`;
+    els.marbleResult.textContent = subset ? "FINALISTS IN MOTION" : "MARBLES IN MOTION";
+    els.rouletteRing.style.background = `conic-gradient(from -90deg, #2f9cdf 0deg ${splitDeg}deg, #f39b38 ${splitDeg}deg 360deg)`;
+    this.resize();
+
+    els.rouletteNeedle.getAnimations().forEach((a) => a.cancel());
+    els.rouletteNeedle.animate(
+      [{ transform: "rotate(0deg)" }, { transform: `rotate(${turns * 360 + targetDeg}deg)` }],
+      { duration: actualDuration * .88, easing: "cubic-bezier(.10,.62,.14,1)", fill: "forwards" }
+    );
+    sound.roulette(actualDuration * .88);
+
+    const marbles = this.makeMarbles(groups);
+    const selectedRows = groups[selectedIndex];
+    const start = performance.now();
+    let lastPhase = "";
+    await new Promise((resolve) => {
+      const frame = (now) => {
+        if (token !== this.token) { resolve(); return; }
+        const t = Math.min(1, (now - start) / actualDuration);
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        this.drawBackdrop(mode, t);
+        this.drawMarbles(marbles, selectedIndex, mode, t, selectedRows);
+        const phase = t < .18 ? (subset ? "RANDOM LOCK" : "RULE LOCK") : t < .72 ? "FULL SPEED" : t < .93 ? "FINAL SPIN" : "GATE LOCKED";
+        if (phase !== lastPhase) {
+          lastPhase = phase; els.roulettePhase.textContent = phase;
+          if (phase === "FINAL SPIN") els.marbleResult.textContent = "DON'T BLINK";
+          if (phase === "GATE LOCKED") {
+            els.rouletteValue.textContent = selectedIndex === 0 ? "A" : "B";
+            els.marbleResult.textContent = subset ? `${selectedRows.length} LOCKED` : `${selectedRows.length} SURVIVE`;
+          }
+        }
+        if (t < 1) requestAnimationFrame(frame); else resolve();
+      };
+      requestAnimationFrame(frame);
+    });
+
+    sound.impact();
+    shakeStage();
+    fx.burst(innerWidth * .5, innerHeight * .46, final ? 110 : 72, true);
+    await wait(reduced ? 120 : 520);
+    els.marbleShow.classList.remove("active");
+    els.marbleShow.setAttribute("aria-hidden", "true");
+    await wait(reduced ? 60 : 260);
+  }
+  playGate(rule, result) {
+    return this.play({ groups: rule.groups, labels: rule.labels, selectedIndex: result.index, featureName: rule.featureName, family: rule.family, visual: rule.visual });
+  }
+  playSubset(allRows, survivors, label, final = false) {
+    const survivorIds = new Set(survivors.map((r) => r._id));
+    const out = allRows.filter((r) => !survivorIds.has(r._id));
+    return this.play({ groups: [survivors, out], labels: [label, "OUT"], selectedIndex: 0, featureName: label, family: "FINAL", visual: final ? "LAST MARBLE" : "RANDOM MARBLE LOCK", subset: true, final });
+  }
+}
+const marbleArena = new MarbleArena(els.marbleCanvas);
 
 function currentLabel() { return state.poolKey === "manager" ? "매니저" : "책임매니저 이상 · 임원 포함"; }
 function aliveSet() { return new Set(state.alive.map((r) => r._id)); }
@@ -195,27 +426,28 @@ async function executeDynamicRound() {
   if (!rule) {
     const n = Math.max(8,targetCount(before));
     const survivors = uniformSubset(state.alive,n);
+    els.ruleName.textContent = "FAIR RANDOM CUT"; els.ruleHint.textContent="설명 가능한 균형 Rule이 없어 균등 무작위 Marble Lock을 사용합니다.";
+    els.statusBefore.textContent=before;els.statusTarget.textContent=n;els.statusAfter.textContent="?";
+    await marbleArena.playSubset(state.alive, survivors, `FAIR CUT ${n}`, false);
     state.alive = survivors;
     state.history.push({label:"FAIR CUT",after:survivors.length});
     state.audit.push(`FALLBACK uniform ${before} → ${survivors.length}`);
-    els.ruleName.textContent = "FAIR RANDOM CUT"; els.ruleHint.textContent="설명 가능한 균형 Rule이 없어 균등 무작위 축소를 사용했습니다.";
-    els.statusBefore.textContent=before;els.statusTarget.textContent=n;els.statusAfter.textContent=survivors.length;
-    sound.impact();fx.burst(innerWidth*.5,innerHeight*.42,45,false);renderCore();state.roundNo+=1;return;
+    els.statusAfter.textContent=survivors.length;renderCore();state.roundNo+=1;return;
   }
 
   els.roundKicker.textContent = rule.family === "MYSTERY" ? "MYSTERY ROUND" : "DYNAMIC ROUND";
   els.roundNumber.textContent = String(state.roundNo).padStart(2,"0"); setRuleDisplay(rule);
-  els.gateA.classList.add("spinning"); els.gateB.classList.add("spinning"); sound.scan();
+  const result = drawRuleGate(rule); // weighted exactly by population; animation only reveals this result
+  els.gateA.classList.add("spinning"); els.gateB.classList.add("spinning");
   state.audit.push(`R${state.roundNo} RULE ${rule.feature} | A=${rule.counts[0]} B=${rule.counts[1]} | target=${rule.target}`);
-  await wait(850);
+  await marbleArena.playGate(rule, result);
 
-  const result = drawRuleGate(rule); // weighted exactly by population
   resetGateClasses();
   const selected = result.index === 0 ? els.gateA : els.gateB; const rejected = result.index === 0 ? els.gateB : els.gateA;
-  selected.classList.add("selected"); rejected.classList.add("out"); sound.impact(); shakeStage(); fx.burst(result.index===0?innerWidth*.43:innerWidth*.72,innerHeight*.46,65,true);
+  selected.classList.add("selected"); rejected.classList.add("out");
   els.statusAfter.textContent = result.survivors.length;
-  els.statusMessage.textContent = `${result.selectedLabel} 생존 · 실제 선택확률 ${(result.probability*100).toFixed(1)}%`;
-  await wait(700);
+  els.statusMessage.textContent = `${result.selectedLabel} 생존 · 실제 선택확률 ${(result.probability*100).toFixed(1)}% · Marble Roulette는 결과 공개 연출`;
+  await wait(320);
 
   state.alive = result.survivors;
   state.usedFeatures.add(rule.feature); state.usedFamilies.add(rule.family);
@@ -233,13 +465,14 @@ async function executeFinalCut(target) {
   resetGateClasses(); els.gateALabel.textContent=`FINAL ${target}`;els.gateBLabel.textContent="OUT";
   els.gateACount.textContent=`${target}명`;els.gateBCount.textContent=`${before-target}명`;els.gateAPct.textContent=`${(target/before*100).toFixed(1)}%`;els.gateBPct.textContent=`${((before-target)/before*100).toFixed(1)}%`;
   els.statusBefore.textContent=before;els.statusTarget.textContent=target;els.statusAfter.textContent="?";
-  els.gateA.classList.add("spinning");els.gateB.classList.add("spinning");sound.scan();
-  await wait(900);
-  state.alive=uniformSubset(state.alive,target);
+  els.gateA.classList.add("spinning");els.gateB.classList.add("spinning");
+  const survivors=uniformSubset(state.alive,target);
+  await marbleArena.playSubset(state.alive, survivors, target===1 ? "LAST MARBLE" : `FINAL ${target}`, target===1);
+  state.alive=survivors;
   resetGateClasses();els.gateA.classList.add("selected");els.gateB.classList.add("out");els.statusAfter.textContent=target;
-  els.statusMessage.textContent=`${before}명 중 ${target}명 균등 무작위 생존`;
+  els.statusMessage.textContent=`${before}명 중 ${target}명 균등 무작위 생존 · Marble Lock 연출`;
   state.history.push({label:`FINAL ${target}`,after:target});state.audit.push(`FINAL uniform subset ${before} → ${target} | per-person conditional p=${(target/before).toFixed(4)}`);
-  sound.impact();fx.burst(innerWidth*.55,innerHeight*.42,target===1?120:70,true);flashStage();renderCore();
+  flashStage();renderCore();
   if (target===1) await revealWinner();
 }
 

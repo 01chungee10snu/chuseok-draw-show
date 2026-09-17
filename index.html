@@ -17,7 +17,7 @@
         <span class="brand-mark">H</span>
         <div>
           <strong>2026 CHUSEOK DRAW</strong>
-          <span>경영지원본부 · Prototype v0.2</span>
+          <span>경영지원본부 · Prototype v0.3 · MARBLE ROULETTE</span>
         </div>
       </div>
       <div class="top-actions">
@@ -72,6 +72,34 @@
       </aside>
 
       <section class="main-panel">
+        <div class="marble-show" id="marbleShow" aria-hidden="true">
+          <canvas id="marbleCanvas" aria-hidden="true"></canvas>
+          <div class="marble-scanline" aria-hidden="true"></div>
+          <div class="marble-hud">
+            <span id="marbleMode">MARBLE ROULETTE</span>
+            <strong id="marbleRule">DYNAMIC GATE</strong>
+          </div>
+          <div class="roulette-dial" id="rouletteDial">
+            <div class="roulette-ring" id="rouletteRing"></div>
+            <div class="roulette-needle" id="rouletteNeedle"><i></i></div>
+            <div class="roulette-core">
+              <span id="roulettePhase">RULE LOCK</span>
+              <strong id="rouletteValue">READY</strong>
+            </div>
+          </div>
+          <div class="marble-gate marble-gate-a">
+            <span>GATE A</span>
+            <strong id="marbleGateA">—</strong>
+            <b id="marbleGateACount">0</b>
+          </div>
+          <div class="marble-gate marble-gate-b">
+            <span>GATE B</span>
+            <strong id="marbleGateB">—</strong>
+            <b id="marbleGateBCount">0</b>
+          </div>
+          <div class="marble-result" id="marbleResult">MARBLES READY</div>
+        </div>
+
         <div class="rule-panel" id="rulePanel">
           <div class="rule-copy">
             <span class="rule-label">NEXT RULE</span>
