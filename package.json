@@ -1,11 +1,20 @@
 {
   "name": "chuseok-draw-show",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node --test tests/*.test.mjs",
-    "serve": "python3 -m http.server 4173",
+    "dev": "vite --host 127.0.0.1 --port 4173",
+    "build": "vite build && cp THIRD_PARTY_NOTICES.md dist/ && mkdir -p dist/licenses && cp licenses/* dist/licenses/",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "serve": "vite preview --host 127.0.0.1 --port 4173",
     "generate:demo": "python3 scripts/generate_demo_data.py"
+  },
+  "dependencies": {
+    "box2d-wasm": "^7.0.0"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0"
   }
 }

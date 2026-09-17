@@ -33,3 +33,11 @@
 ## D008 — Round별 독립 Show Stage
 
 Header와 고유값 그룹은 데이터에 의해 동적으로 바뀌지만, 행사 전개는 라운드마다 명확히 다른 체험을 제공한다. Group Round 1~4는 각각 `STEEL DROP`, `MOON ORBIT`, `PINBALL GRID`, `FURNACE SPLIT`을 사용한다. Final은 `SPOTLIGHT CUT → TWIN ORBIT → LAST MARBLE` 순으로 별도 연출한다. 각 Stage는 배경 구조, 그룹 이동 궤적, 긴장 단계 문구, 사운드 cue를 독립적으로 가진다. 단, 어떤 Stage도 추첨 결과를 결정하지 않으며 공정 추첨 엔진이 이미 결정한 결과만 공개한다.
+
+## D009 — Box2D는 Show-only Physics Layer
+
+`STEEL DROP`, `PINBALL GRID`, `LAST MARBLE`은 `box2d-wasm`으로 실제 중력·충돌·반발 물리를 계산한다. 그러나 Box2D의 골인 순서나 충돌 결과는 생존자/당첨자를 결정하지 않는다. 생존 Lane 또는 Final subset은 기존 Web Crypto 기반 공정 추첨 엔진이 먼저 확정하고, 물리엔진은 그 확정 결과를 공개하는 시각 레이어로만 동작한다. 물리 초기화 또는 렌더링 실패 시 Canvas fallback으로 전환하더라도 추첨 결과는 변하지 않는다.
+
+## D010 — Production은 Vite dist + GitHub Actions Pages
+
+Box2D WASM을 외부 CDN 없이 행사 페이지와 함께 배포하기 위해 production은 Vite로 빌드한다. GitHub Pages에는 저장소 루트가 아니라 `npm test`와 `npm run build`를 통과한 `dist/` artifact만 배포한다. 실제 HR CSV는 build input이나 `public/`에 포함하지 않으며, `public/data/demo_participants.csv`만 합성 데모 데이터로 허용한다.

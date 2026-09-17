@@ -5,7 +5,7 @@ data/real/
 *.private.csv
 employee*.csv
 participants*.csv
-!data/demo_participants.csv
+!public/data/demo_participants.csv
 
 # Local runtime / editor noise
 .DS_Store

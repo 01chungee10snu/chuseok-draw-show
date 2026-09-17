@@ -13,7 +13,7 @@ function parseSimpleCsv(text) {
   });
 }
 
-const raw = parseSimpleCsv(fs.readFileSync(new URL("../data/demo_participants.csv", import.meta.url), "utf8"));
+const raw = parseSimpleCsv(fs.readFileSync(new URL("../public/data/demo_participants.csv", import.meta.url), "utf8"));
 const prepared = prepareRows(raw);
 const manager = assignDrawIds(poolRows(prepared, "manager"), "manager");
 

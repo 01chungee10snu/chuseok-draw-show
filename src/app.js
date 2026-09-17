@@ -12,6 +12,7 @@ import {
   headerFairnessStatement,
 } from "./header-round-engine.js";
 import { stageForRound, finalStageForTarget } from "./round-show-config.js";
+import { PhysicsShowEngine, isPhysicsStage } from "./physics-show-engine.js";
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -128,6 +129,7 @@ class FX {
   }
 }
 const fx = new FX(els.fx);
+const physicsShow = new PhysicsShowEngine();
 
 class MarbleArena {
   constructor(canvas) {
@@ -348,15 +350,41 @@ class MarbleArena {
 
     const marbles = this.makeMarbles(groups);
     const selectedRows = groups[selectedIndex];
+    let usePhysics = false;
+    if (!reduced && finalStage?.id === "last-marble") {
+      try {
+        const physicsPeople = [];
+        groups.forEach((group, lane) => group.forEach((row) => physicsPeople.push({
+          id: row._id,
+          label: `${row._drawId} ${row._name}`,
+          count: 1,
+          lane,
+        })));
+        els.marbleResult.textContent = "BOX2D PHYSICS · LAST MARBLE";
+        await physicsShow.start("last-marble", physicsPeople);
+        usePhysics = true;
+      } catch (error) {
+        console.warn("Box2D last-marble fallback", error);
+        els.marbleResult.textContent = "LAST MARBLE · KINETIC FALLBACK";
+      }
+    }
     const start = performance.now();
+    let lastNow = start;
     let lastPhase = "";
     await new Promise((resolve) => {
       const frame = (now) => {
         if (token !== this.token) { resolve(); return; }
         const t = Math.min(1, (now - start) / actualDuration);
+        const dt = Math.min(.05, Math.max(0, (now - lastNow) / 1000));
+        lastNow = now;
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.drawBackdrop(finalStage || { id: "last-gate" }, t);
-        this.drawMarbles(marbles, selectedIndex, mode, t, selectedRows);
+        if (usePhysics) {
+          const snapshots = physicsShow.step(dt * .82);
+          this.drawPhysicsBodies(snapshots, selectedIndex, t, "last-marble");
+        } else {
+          this.drawMarbles(marbles, selectedIndex, mode, t, selectedRows);
+        }
         const phase = finalStage
           ? (t < .18 ? finalStage.phaseStart : t < .72 ? finalStage.phaseRun : t < .93 ? finalStage.phaseTension : finalStage.phaseLock)
           : (t < .18 ? (subset ? "RANDOM LOCK" : "RULE LOCK") : t < .72 ? "FULL SPEED" : t < .93 ? "FINAL SPIN" : "GATE LOCKED");
@@ -471,6 +499,63 @@ class MarbleArena {
       c.restore();
     }
   }
+  drawPhysicsBodies(snapshots, selectedLane, t, stageId) {
+    const c = this.ctx, w = this.width, h = this.height;
+    const revealT = Math.max(0, Math.min(1, (t - .72) / .28));
+    const ease = revealT * revealT * (3 - 2 * revealT);
+    const selected = snapshots.filter((s) => s.group.lane === selectedLane);
+    const selectedIndex = new Map(selected.map((s, i) => [s.group.id ?? s.index, i]));
+    for (const snap of snapshots) {
+      const mapped = PhysicsShowEngine.worldToCanvas(snap, w, h);
+      let x = mapped.x;
+      let y = mapped.y;
+      const radius = Math.max(stageId === "last-marble" ? 16 : 22, snap.radius * mapped.radiusScale * 1.1);
+      let alpha = 1;
+      if (revealT > 0) {
+        if (snap.group.lane === selectedLane) {
+          const ord = selectedIndex.get(snap.group.id ?? snap.index) ?? 0;
+          const span = Math.min(w * .56, 170 * Math.max(1, selected.length - 1));
+          const tx = selected.length === 1 ? w / 2 : w / 2 - span / 2 + (span * ord) / Math.max(1, selected.length - 1);
+          const ty = h * .74 + Math.sin(ord * 1.8) * 8;
+          x += (tx - x) * ease;
+          y += (ty - y) * ease;
+        } else {
+          const tx = snap.group.lane === 0 ? w * .08 : w * .92;
+          x += (tx - x) * ease;
+          y += (h * 1.15 - y) * ease;
+          alpha = Math.max(.04, 1 - ease * .95);
+        }
+      }
+
+      const fill = snap.group.lane === selectedLane && revealT > .18 ? "#ffd166" : snap.group.lane === 0 ? "#49bff8" : "#f39b38";
+      c.save();
+      c.globalAlpha = alpha;
+      c.translate(x, y);
+      c.rotate(snap.angle || 0);
+      c.fillStyle = fill;
+      c.shadowBlur = snap.group.lane === selectedLane && revealT > .18 ? 28 : 10;
+      c.shadowColor = fill;
+      c.beginPath(); c.arc(0, 0, radius, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = alpha * .34;
+      c.fillStyle = "#fff";
+      c.beginPath(); c.arc(-radius * .28, -radius * .30, Math.max(4, radius * .21), 0, Math.PI * 2); c.fill();
+      c.restore();
+
+      c.save();
+      c.globalAlpha = alpha;
+      c.textAlign = "center"; c.textBaseline = "middle";
+      c.fillStyle = "#07101a";
+      c.font = `900 ${stageId === "last-marble" ? 14 : Math.max(11, Math.min(16, radius * .36))}px system-ui, sans-serif`;
+      const label = String(snap.group.label || "");
+      const short = label.length > 11 ? `${label.slice(0, 10)}…` : label;
+      c.fillText(short, x, y - 2);
+      if ((snap.group.count || 1) > 1) {
+        c.font = "800 10px system-ui, sans-serif";
+        c.fillText(`${snap.group.count}명`, x, y + 14);
+      }
+      c.restore();
+    }
+  }
   async playHeaderRound(round, result, candidates, roundNo) {
     const token = ++this.token;
     const reduced = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
@@ -523,6 +608,24 @@ class MarbleArena {
     this.renderGroupDeck(round);
     await wait(reduced ? 80 : 420);
 
+    let usePhysics = false;
+    if (!reduced && isPhysicsStage(stage.id)) {
+      try {
+        els.marbleResult.textContent = `BOX2D PHYSICS · ${stage.title}`;
+        const physicsGroups = round.groups.map((group, i) => ({
+          id: `group-${i}`,
+          label: group.label,
+          count: group.count,
+          lane: group.lane,
+        }));
+        await physicsShow.start(stage.id, physicsGroups);
+        usePhysics = true;
+      } catch (error) {
+        console.warn("Box2D stage fallback", stage.id, error);
+        els.marbleResult.textContent = `${stage.title} · KINETIC FALLBACK`;
+      }
+    }
+
     const split = round.laneCounts[0] / total;
     const splitDeg = split * 360;
     const targetDeg = result.index === 0 ? Math.max(8, splitDeg * .52) : splitDeg + Math.max(8, (360 - splitDeg) * .52);
@@ -537,14 +640,23 @@ class MarbleArena {
     sound.roulette(raceMs * .88);
 
     const start = performance.now();
+    let lastNow = start;
     let lastPhase = "";
     await new Promise((resolve) => {
       const frame = (now) => {
         if (token !== this.token) { resolve(); return; }
         const t = Math.min(1, (now - start) / raceMs);
+        const dt = Math.min(.05, Math.max(0, (now - lastNow) / 1000));
+        lastNow = now;
         this.ctx.clearRect(0, 0, this.width, this.height);
         this.drawBackdrop(stage, t);
-        this.drawValueGroupMarbles(round, result.index, t, stage);
+        if (usePhysics) {
+          const speed = stage.id === "pinball-grid" ? 1.22 : 1.0;
+          const snapshots = physicsShow.step(dt * speed);
+          this.drawPhysicsBodies(snapshots, result.index, t, stage.id);
+        } else {
+          this.drawValueGroupMarbles(round, result.index, t, stage);
+        }
         const phase = t < .16 ? stage.phaseStart : t < .68 ? stage.phaseRun : t < .92 ? stage.phaseTension : stage.phaseLock;
         if (phase !== lastPhase) {
           lastPhase = phase; els.roulettePhase.textContent = phase;

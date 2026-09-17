@@ -12,25 +12,27 @@
 - 실제 인사 CSV는 브라우저 메모리에서만 처리하며 저장소/서버로 전송하지 않습니다.
 - 휴대폰 뒷자리 기반 규칙은 기본 비활성화합니다.
 
-## 현재 프로토타입 · v0.5 Multi-Stage Group Show
+## 현재 프로토타입 · v0.6 Box2D Physics Show
 
-![Round 1 — Steel Drop](./docs/stage-1.png)
+![Box2D Steel Drop](./docs/box2d-steel-drop.png)
 
 초반에는 개인 이름을 사용하지 않습니다. 매 라운드 현재 생존자 데이터에서 **사용 가능한 Header를 다시 평가**하고, Header Roulette로 하나를 고른 뒤 해당 Header의 고유값을 2~7개 그룹으로 만들어 생존 경쟁을 진행합니다. 생존자가 5~10명에 도달하면 처음으로 Identity Reveal을 수행합니다.
 
-각 라운드는 동일 애니메이션을 반복하지 않습니다.
+v0.6부터 공정성 엔진과 Show Engine을 더 명확하게 분리했습니다. **Web Crypto + 인원비례 Group Gate 로직이 결과를 먼저 확정**하고, Box2D는 그 결과를 공개하는 물리 연출에만 사용됩니다.
 
-| Stage | Show | 핵심 움직임 |
+| Stage | Renderer | 핵심 움직임 |
 |---|---|---|
-| Round 1 | **STEEL DROP** | 상단 마그넷 해제 → 수직 낙하 → Steel Gate |
-| Round 2 | **MOON ORBIT** | 보름달 중심 궤도 → 궤도 축소 → Orbit Lock |
-| Round 3 | **PINBALL GRID** | Peg 충돌 → 지그재그 낙하 → Slot Lock |
-| Round 4 | **FURNACE SPLIT** | 컨베이어 이동 → 용광로 통과 → Steel Gate |
-| Finalists→4 | **SPOTLIGHT CUT** | 다중 Spotlight → 생존자 집중 |
-| 4→2 | **TWIN ORBIT** | 좌우 이중 궤도 → Final Two |
-| 2→1 | **LAST MARBLE** | 두 Marble 직선 낙하 → Slow Motion → Winner |
+| Round 1 | **STEEL DROP · Box2D** | 중력 낙하 → Steel ramp/bumper 충돌 → Gate reveal |
+| Round 2 | **MOON ORBIT · Canvas** | 보름달 중심 궤도 → 궤도 축소 → Orbit Lock |
+| Round 3 | **PINBALL GRID · Box2D** | 실제 Peg 충돌/반발 → 지그재그 낙하 → Slot reveal |
+| Round 4 | **FURNACE SPLIT · Canvas** | 컨베이어 이동 → 용광로 통과 → Steel Gate |
+| Finalists→4 | **SPOTLIGHT CUT · Canvas** | 다중 Spotlight → 생존자 집중 |
+| 4→2 | **TWIN ORBIT · Canvas** | 좌우 이중 궤도 → Final Two |
+| 2→1 | **LAST MARBLE · Box2D** | 실제 물리 레이스 → Slow Motion → Winner reveal |
 
-![Identity Reveal preview](./docs/identity-reveal.png)
+![Box2D Pinball Grid](./docs/box2d-pinball-grid.png)
+
+![Box2D Last Marble](./docs/box2d-last-marble.png)
 
 - 가상 참가자 CSV 240명
 - 매니저 / 책임매니저 이상 2개 추첨 Pool
@@ -42,28 +44,37 @@
 - Group phase 동안 개인 이름 완전 비공개
 - 자연스럽게 5~10명 도달 시 Identity Reveal
 - Finalist 공개 후 균등 무작위 Final 4 → 2 → 1
-- Round별 독립 Show Stage: STEEL DROP / MOON ORBIT / PINBALL GRID / FURNACE SPLIT
-- Final별 독립 Show Stage: SPOTLIGHT CUT / TWIN ORBIT / LAST MARBLE
-- Stage마다 배경 구조·Marble 궤적·긴장 구간·결정 문구·사운드 cue를 별도 적용
+- Box2D/WASM 물리 Stage와 Canvas Stage를 혼합 운영
+- 물리엔진은 결과를 결정하지 않는 show-only layer
 - Web Crypto 기반 난수
 - 로컬 CSV 업로드
+- Vite production build + GitHub Actions Pages 배포
 - 16:9 행사장 화면 중심 UI
 
 ## 실행
 
-정적 파일이므로 저장소 루트에서 간단한 HTTP 서버만 띄우면 됩니다.
-
 ```bash
-python3 -m http.server 4173
+npm ci
+npm run dev
 ```
 
 브라우저에서 `http://localhost:4173` 접속.
+
+Production 확인:
+
+```bash
+npm test
+npm run build
+npm run preview
+```
+
+`npm run build`는 Box2D WASM, Third-Party Notice와 라이선스를 포함한 `dist/`를 생성합니다.
 
 ## 데이터 보안
 
 실제 직원 CSV는 Git에 올리지 마십시오. `.gitignore`에서 실데이터 패턴과 `data/private/`, `data/real/`을 차단합니다.
 
-프로토타입의 `data/demo_participants.csv`는 전부 가상 데이터입니다.
+프로토타입의 `public/data/demo_participants.csv`는 전부 가상 데이터입니다. 실제 인사 CSV는 `public/` 또는 Git 저장소에 두지 않습니다.
 
 ## 조작
 

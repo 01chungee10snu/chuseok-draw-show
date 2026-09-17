@@ -85,3 +85,28 @@
 - Manager pool runtime: `150 → 75 → 35 → 18 → 8 → 4 → 2 → 1`
 - Observed stages: `STEEL DROP → MOON ORBIT → PINBALL GRID → FURNACE SPLIT → SPOTLIGHT CUT → TWIN ORBIT → LAST MARBLE`
 - Automated tests: `12/12 PASS`
+
+## [0.6.0] - 2026-09-17
+
+### Added
+- `box2d-wasm` show-only physics layer bundled as WebAssembly
+- Real Box2D physics for `STEEL DROP`, `PINBALL GRID`, and `LAST MARBLE`
+- Steel ramps, bumpers, walls, pinball pegs, restitution/friction and dynamic-body collisions
+- Physics fallback isolation: fair-draw result remains authoritative even if physics initialization fails
+- Vite production build with bundled SIMD/non-SIMD Box2D WASM
+- GitHub Actions Pages workflow that tests and builds before deployment
+- Third-party notices and license copies for `lazygyu/roulette`, `box2d-wasm`, and bundled SIMD feature-detection code
+- Production-build visual QA screenshots for all three Box2D stages
+
+### Changed
+- Synthetic demo data moved to `public/data/demo_participants.csv` so it is included in the Vite build
+- Local runtime moved from raw `python -m http.server` to Vite dev/build/preview commands
+- GitHub Pages deployment source changed from repository-root static files to the tested `dist/` artifact
+
+### Verified flow
+- Production preview full run completed through all stages with Box2D active on the designated stages
+- Browser loaded `Box2D.simd.wasm` from the local production bundle
+- Runtime JavaScript exceptions: `0`
+- Physics fallback events: `0`
+- `npm audit`: `0 vulnerabilities`
+- Automated tests: `13/13 PASS`

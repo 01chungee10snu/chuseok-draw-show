@@ -9,7 +9,7 @@ N = 240
 random.seed(SEED)
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = ROOT / "data" / "demo_participants.csv"
+OUT = ROOT / "public" / "data" / "demo_participants.csv"
 
 SILS = {
     "인재경영실": ["컬처디자인팀", "인재개발팀", "인사운영팀", "HR기획팀"],
