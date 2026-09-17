@@ -1080,7 +1080,7 @@ $("exportAudit").onclick = () =>
     JSON.stringify(
       {
         app: "럭키드로우",
-        version: "1.0.0",
+        version: "1.0.1",
         event: config.title,
         demo: state.demo,
         rosterSha256: state.hash,
@@ -1138,7 +1138,7 @@ window.addEventListener("beforeunload", (e) => {
 if (["127.0.0.1", "localhost"].includes(location.hostname))
   Object.defineProperty(window, "luckyDrawQA", {
     get: () => ({
-      version: "1.0.0",
+      version: "1.0.1",
       busy: state.busy,
       loading: state.loading,
       count: state.alive.length,

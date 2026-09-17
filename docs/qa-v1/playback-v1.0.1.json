@@ -1,0 +1,43 @@
+{
+  "version": "1.0.1",
+  "testedAt": "2026-09-17T23:35:09.608Z",
+  "browser": "Mac Chrome",
+  "slowFrameIntervalMs": 600,
+  "cases": [
+    {
+      "stage": "furnace-split",
+      "before": 240,
+      "after": 108,
+      "wallSeconds": 15.009,
+      "pauseMs": 1504,
+      "renderFrames": 23,
+      "show": {
+        "type": "show_finished",
+        "session": "d73ab70d-d822-433f-b1b9-0f7e6f04da3b",
+        "stage": "furnace-split",
+        "kind": "physics",
+        "renderedAs": "physics",
+        "reason": "completed",
+        "maxProgress": 1.008327847435361,
+        "elapsed": 12.58
+      }
+    },
+    {
+      "mode": "normal",
+      "stage": "orbit-rally",
+      "before": 108,
+      "after": 55,
+      "show": {
+        "type": "show_finished",
+        "session": "d73ab70d-d822-433f-b1b9-0f7e6f04da3b",
+        "stage": "orbit-rally",
+        "kind": "orbit",
+        "renderedAs": "orbit",
+        "reason": "completed",
+        "maxProgress": 0,
+        "elapsed": 12.03
+      }
+    }
+  ],
+  "errors": []
+}

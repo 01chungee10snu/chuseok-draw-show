@@ -71,6 +71,8 @@ export const STAGES = [
 export const GROUP_STAGE_IDS = STAGES.slice(0, 8).map((s) => s.id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const TAU = Math.PI * 2;
+const MAX_FRAME_SECONDS = 1;
+const PHYSICS_FRAME_SECONDS = 1 / 60;
 
 export class Sound {
   constructor() {
@@ -140,8 +142,13 @@ export class ShowDirector {
     this.running = false;
     this.paused = false;
     this.time = 0;
-    this.lastTime = 0;
+    this.lastTime = null;
     this.idleTime = 0;
+    this.onVisibilityChange = () => {
+      this.lastTime = null;
+      if (document.hidden) this.sound?.stop();
+    };
+    document.addEventListener("visibilitychange", this.onVisibilityChange);
     this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     this.resizeObserver = new ResizeObserver(() => this.resize());
     this.resizeObserver.observe(canvas);
@@ -177,6 +184,7 @@ export class ShowDirector {
     this.dpr = dpr;
   }
   pause(value) {
+    if (this.paused !== value) this.lastTime = null;
     this.paused = value;
     this.sound?.stop();
   }
@@ -184,6 +192,7 @@ export class ShowDirector {
     this.reduced = reduced;
     this.running = false;
     this.paused = false;
+    this.lastTime = null;
   }
   async play(
     tokens,
@@ -225,6 +234,7 @@ export class ShowDirector {
       }
     }
     this.initializing = false;
+    this.lastTime = null;
     if (this.renderError) throw this.renderError;
     return new Promise((resolve, reject) => {
       this.resolve = resolve;
@@ -233,10 +243,11 @@ export class ShowDirector {
   }
   loop(now) {
     try {
-      const raw = this.lastTime ? (now - this.lastTime) / 1000 : 0;
+      const raw = this.lastTime === null ? 0 : (now - this.lastTime) / 1000;
       this.lastTime = now;
-      const dt =
-        document.hidden || raw > 0.5 ? 0 : Math.min(0.05, Math.max(0, raw));
+      // Slow visible frames still advance; tab and pause transitions reset the
+      // clock separately so suspended time never becomes a surprise reveal.
+      const dt = document.hidden ? 0 : clamp(raw, 0, MAX_FRAME_SECONDS);
       if (this.running) {
         if (!this.paused && !this.initializing) this.time += dt;
         this.drawRunning(this.paused ? 0 : dt);
@@ -403,7 +414,7 @@ export class ShowDirector {
     }
     let progress = this.time / this.duration;
     const tick = Math.floor(this.time * 2);
-    if (tick !== this.lastTick && !this.paused) {
+    if (tick !== this.lastTick && !this.paused && !document.hidden) {
       this.lastTick = tick;
       this.sound?.tone(
         progress > 0.8 ? 220 : 390 + (tick % 4) * 40,
@@ -421,7 +432,13 @@ export class ShowDirector {
       return;
     }
     if (this.stage.kind === "physics") {
-      this.engine.step(dt);
+      // Keep the engine's fixed-step budget intact when rendering falls behind.
+      // Paint once, after advancing all of this frame's bounded elapsed time.
+      for (let remaining = dt; remaining > 1e-9; ) {
+        const step = Math.min(PHYSICS_FRAME_SECONDS, remaining);
+        this.engine.step(step);
+        remaining -= step;
+      }
       const frame = this.engine.frame();
       const p = frame.stats?.progress || 0;
       this.result.maxProgress = Math.max(this.result.maxProgress, p);
@@ -725,6 +742,7 @@ export class ShowDirector {
   }
   destroy() {
     cancelAnimationFrame(this.raf);
+    document.removeEventListener("visibilitychange", this.onVisibilityChange);
     this.resizeObserver.disconnect();
     this.sound?.stop();
     this.engine.dispose?.();
