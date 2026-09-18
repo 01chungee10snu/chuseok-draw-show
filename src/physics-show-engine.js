@@ -165,7 +165,7 @@ export class PhysicsShowEngine {
     try {
       def.set_type(B.b2_dynamicBody);
       def.set_position(position);
-      def.set_linearDamping(0.035);
+      def.set_linearDamping(0.18);
       def.set_angularDamping(0.018);
       def.set_bullet(true);
       body = this.world.CreateBody(def);
@@ -206,6 +206,7 @@ export class PhysicsShowEngine {
       stuckFor: 0,
       noDownFor: 0,
       kickCount: 0,
+      previous: { x: start.x, y: start.y, angle: 0 },
     };
   }
 
@@ -228,6 +229,7 @@ export class PhysicsShowEngine {
     this.timeScale = 1;
     this.physicsRate = this.stage.cruiseSpeed ?? 1;
     this.elapsedReal = 0;
+    this.goalApproach = 0;
     this.camera = { x: this.stage.width / 2, y: 5.5, zoom: 1 };
     this.trails = new Map();
     this.stage.entities.forEach((def) => this._createEntity(def));
@@ -236,6 +238,7 @@ export class PhysicsShowEngine {
       this._createToken(t, i, tokens.length, maxCount),
     );
     this.tokens.forEach((item) => this.trails.set(item.token.id, []));
+    this._rememberTransforms();
     return this.frame();
   }
 
@@ -260,6 +263,7 @@ export class PhysicsShowEngine {
   }
 
   _updateCamera(realDt, stats) {
+    this.goalApproach = Math.max(this.goalApproach, stats.zoomProgress);
     const targetY = clamp(
       stats.followY + this.stage.cameraLead,
       5.5,
@@ -268,7 +272,7 @@ export class PhysicsShowEngine {
     const targetZoom = lerp(
       1,
       this.stage.maxZoom,
-      stats.zoomProgress * stats.zoomProgress,
+      this.goalApproach * this.goalApproach,
     );
     this.camera.y = smooth(this.camera.y, targetY, realDt, 4.4);
     this.camera.zoom = smooth(this.camera.zoom, targetZoom, realDt, 3.6);
@@ -301,7 +305,7 @@ export class PhysicsShowEngine {
         item.noDownFor += realDt;
       }
 
-      if (item.stuckFor >= this.stage.stuckDelay || item.noDownFor >= 1.15) {
+      if (item.stuckFor >= this.stage.stuckDelay || item.noDownFor >= 2.8) {
         const h = hashString(`${item.token.id}-${item.kickCount}`);
         const recoveryCenter =
           this.stage.id === "twin-orbit"
@@ -311,21 +315,17 @@ export class PhysicsShowEngine {
             : this.stage.width / 2;
         const centerDelta = recoveryCenter - pos.x;
         const centerDir =
-          Math.abs(centerDelta) > 0.35 ? Math.sign(centerDelta) : h & 1 ? 1 : -1;
-        const severe = item.kickCount >= 2;
-        const sideSpeed =
-          (severe ? 3.4 : 2.1) +
-          (((h >> 4) % 100) / 100) * (severe ? 1.4 : 0.8);
-        const downSpeed =
-          (severe ? 4.2 : 2.8) +
-          (((h >> 9) % 100) / 100) * (severe ? 1.6 : 0.9);
-        const velocity = this._vec(centerDir * sideSpeed, downSpeed);
-        const impulse = this._vec(centerDir * 0.35, 0.55);
+          Math.abs(centerDelta) > 0.35
+            ? Math.sign(centerDelta)
+            : h & 1
+              ? 1
+              : -1;
+        // A small physical nudge, never a sudden replacement of velocity.
+        const impulse = this._vec(centerDir * 1.35, 1.1);
         try {
-          item.body.SetLinearVelocity(velocity);
           item.body.ApplyLinearImpulseToCenter(impulse, true);
         } finally {
-          this._destroy(velocity, impulse);
+          this._destroy(impulse);
         }
         item.body.SetAwake(true);
         item.stuckFor = 0;
@@ -339,12 +339,31 @@ export class PhysicsShowEngine {
 
   _updateTrails() {
     for (const item of this.tokens) {
-      const p = item.body.GetPosition();
+      const p = this._transform(item);
       const trail = this.trails.get(item.token.id) || [];
       trail.push({ x: p.x, y: p.y });
       if (trail.length > 12) trail.shift();
       this.trails.set(item.token.id, trail);
     }
+  }
+
+  _rememberTransforms() {
+    for (const item of [...this.entities, ...this.tokens]) {
+      const p = item.body.GetPosition();
+      item.previous = { x: p.x, y: p.y, angle: item.body.GetAngle() };
+    }
+  }
+
+  _transform(item) {
+    const p = item.body.GetPosition();
+    const angle = item.body.GetAngle();
+    const previous = item.previous || { x: p.x, y: p.y, angle };
+    const alpha = clamp(this.accumulator / this.stage.fixedStep, 0, 1);
+    return {
+      x: lerp(previous.x, p.x, alpha),
+      y: lerp(previous.y, p.y, alpha),
+      angle: lerp(previous.angle, angle, alpha),
+    };
   }
 
   step(realSeconds) {
@@ -367,6 +386,7 @@ export class PhysicsShowEngine {
     this.accumulator += realDt * this.physicsRate;
     let guard = 0;
     while (this.accumulator >= this.stage.fixedStep && guard < 12) {
+      this._rememberTransforms();
       this.world.Step(
         this.stage.fixedStep,
         this.stage.velocityIterations,
@@ -375,7 +395,7 @@ export class PhysicsShowEngine {
       this.accumulator -= this.stage.fixedStep;
       guard += 1;
     }
-    this._updateStuck(realDt);
+    this._updateStuck(guard * this.stage.fixedStep);
     this._updateTrails();
     const after = this._progressStats();
     this._updateCamera(realDt, after);
@@ -383,9 +403,7 @@ export class PhysicsShowEngine {
   }
 
   _entitySnapshot(item) {
-    const { def, body } = item;
-    const p = body.GetPosition();
-    return { def, x: p.x, y: p.y, angle: body.GetAngle() };
+    return { def: item.def, ...this._transform(item) };
   }
 
   frame() {
@@ -409,24 +427,23 @@ export class PhysicsShowEngine {
         progress: clamp(stats.frontY / this.stage.goalY, 0, 1.2),
       },
       entities: this.entities.map((e) => this._entitySnapshot(e)),
-      tokens: this.tokens.map(
-        ({ token, body, radius, stuckFor, kickCount }) => {
-          const p = body.GetPosition();
-          const v = body.GetLinearVelocity();
-          return {
-            token,
-            radius,
-            x: p.x,
-            y: p.y,
-            angle: body.GetAngle(),
-            vx: v.x,
-            vy: v.y,
-            stuckFor,
-            kickCount,
-            trail: [...(this.trails.get(token.id) || [])],
-          };
-        },
-      ),
+      tokens: this.tokens.map((item) => {
+        const { token, body, radius, stuckFor, kickCount } = item;
+        const p = this._transform(item);
+        const v = body.GetLinearVelocity();
+        return {
+          token,
+          radius,
+          x: p.x,
+          y: p.y,
+          angle: p.angle,
+          vx: v.x,
+          vy: v.y,
+          stuckFor,
+          kickCount,
+          trail: [...(this.trails.get(token.id) || [])],
+        };
+      }),
     };
   }
 

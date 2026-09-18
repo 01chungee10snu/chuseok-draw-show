@@ -38,7 +38,7 @@ test("every stage has a substantial controlled course", () => {
       `${id} slow factor`,
     );
     assert.ok(quality.maxZoom > 1, `${id} zoom`);
-    assert.ok(quality.cruiseSpeed > 1, `${id} cruise rate`);
+    assert.equal(quality.cruiseSpeed, 1, `${id} has no early fast-forward`);
   }
 });
 
@@ -109,13 +109,16 @@ test("twin-orbit carries the four-token finalist case through both lanes", async
   await engine.start("twin-orbit", tokens);
   let frame;
   let maxProgress = 0;
-  for (let frameIndex = 0; frameIndex < 19 * 60; frameIndex += 1) {
+  for (let frameIndex = 0; frameIndex < 40 * 60; frameIndex += 1) {
     frame = engine.step(1 / 60);
     maxProgress = Math.max(maxProgress, frame.stats.progress);
   }
   assert.ok(maxProgress >= 0.985, `max progress ${maxProgress}`);
   for (const token of frame.tokens) {
-    assert.ok(token.y / frame.stage.goalY >= 0.985, `${token.token.id} progress`);
+    assert.ok(
+      token.y / frame.stage.goalY >= 0.985,
+      `${token.token.id} progress`,
+    );
   }
   engine.dispose();
 });

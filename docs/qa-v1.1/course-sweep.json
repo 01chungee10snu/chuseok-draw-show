@@ -1,0 +1,242 @@
+[
+  {
+    "stage": "steel-drop",
+    "seed": 0,
+    "duration": 24.2,
+    "ok": true
+  },
+  {
+    "stage": "steel-drop",
+    "seed": 1,
+    "duration": 24.73,
+    "ok": true
+  },
+  {
+    "stage": "steel-drop",
+    "seed": 18,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "steel-drop",
+    "seed": 71,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "steel-drop",
+    "seed": 987654321,
+    "duration": 19.37,
+    "ok": true
+  },
+  {
+    "stage": "moon-orbit",
+    "seed": 0,
+    "duration": 25.26,
+    "ok": true
+  },
+  {
+    "stage": "moon-orbit",
+    "seed": 1,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "moon-orbit",
+    "seed": 18,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "moon-orbit",
+    "seed": 71,
+    "duration": 26.32,
+    "ok": true
+  },
+  {
+    "stage": "moon-orbit",
+    "seed": 987654321,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "pinball-grid",
+    "seed": 0,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "pinball-grid",
+    "seed": 1,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "pinball-grid",
+    "seed": 18,
+    "duration": 18.56,
+    "ok": true
+  },
+  {
+    "stage": "pinball-grid",
+    "seed": 71,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "pinball-grid",
+    "seed": 987654321,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "furnace-split",
+    "seed": 0,
+    "duration": 23.99,
+    "ok": true
+  },
+  {
+    "stage": "furnace-split",
+    "seed": 1,
+    "duration": 18.91,
+    "ok": true
+  },
+  {
+    "stage": "furnace-split",
+    "seed": 18,
+    "duration": 21.08,
+    "ok": true
+  },
+  {
+    "stage": "furnace-split",
+    "seed": 71,
+    "duration": 19.03,
+    "ok": true
+  },
+  {
+    "stage": "furnace-split",
+    "seed": 987654321,
+    "duration": 20.42,
+    "ok": true
+  },
+  {
+    "stage": "spotlight-cut",
+    "seed": 0,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "spotlight-cut",
+    "seed": 1,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "spotlight-cut",
+    "seed": 18,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "spotlight-cut",
+    "seed": 71,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "spotlight-cut",
+    "seed": 987654321,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "twin-orbit",
+    "seed": 0,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "twin-orbit",
+    "seed": 1,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "twin-orbit",
+    "seed": 18,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "twin-orbit",
+    "seed": 71,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "twin-orbit",
+    "seed": 987654321,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-marble",
+    "seed": 0,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-marble",
+    "seed": 1,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-marble",
+    "seed": 18,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-marble",
+    "seed": 71,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-marble",
+    "seed": 987654321,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-gate",
+    "seed": 0,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-gate",
+    "seed": 1,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-gate",
+    "seed": 18,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-gate",
+    "seed": 71,
+    "duration": 18,
+    "ok": true
+  },
+  {
+    "stage": "last-gate",
+    "seed": 987654321,
+    "duration": 18,
+    "ok": true
+  }
+]

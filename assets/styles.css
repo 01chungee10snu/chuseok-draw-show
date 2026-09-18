@@ -1021,6 +1021,71 @@ dialog::backdrop {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.pool-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--board) 65%, transparent);
+}
+.pool-value-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 9px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.pool-value-head > span:last-child {
+  display: flex;
+  gap: 12px;
+}
+.pool-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  max-height: 190px;
+  overflow: auto;
+  padding: 2px;
+}
+.pool-values label {
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px !important;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 10px;
+  color: var(--text) !important;
+  cursor: pointer;
+  min-width: 0;
+}
+.pool-value-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.pool-value-count {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.pool-values input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+.pool-estimate {
+  font-size: 14px;
+  font-weight: 650;
+  color: var(--text);
+}
+.pool-estimate.empty {
+  color: var(--danger);
+}
 .data-status {
   font-size: 13px;
   border-left: 2px solid var(--muted);
@@ -1201,6 +1266,7 @@ dialog::backdrop {
 .audience .bottom-brand,
 .audience .screen-help,
 .audience .journey-label,
+.audience #poolSettingsButton,
 .audience #prepareButton {
   display: none;
 }
@@ -1473,6 +1539,10 @@ dialog::backdrop {
   }
   .control-actions {
     justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  #poolSettingsButton {
+    width: 100%;
   }
   .next-button {
     flex: 1;
@@ -1513,6 +1583,9 @@ dialog::backdrop {
   }
   .dialog-footer {
     padding: 15px 22px;
+  }
+  .pool-values {
+    grid-template-columns: 1fr;
   }
   .info-dialog {
     max-height: 90dvh;

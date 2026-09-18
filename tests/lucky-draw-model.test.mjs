@@ -126,9 +126,18 @@ test("fully numeric quantile groups preserve ties", () => {
   assert.equal(tieGroups[0].rows.filter((row) => row.점수 === "1").length, 2);
 });
 
-test("filterPool is exact and returns a new array", () => {
-  const rows = [{ 팀: "A" }, { 팀: "a" }];
+test("filterPool supports exact OR selections, including missing values", () => {
+  const rows = [{ 팀: "A" }, { 팀: "a" }, { 팀: "" }, {}];
   assert.deepEqual(filterPool(rows, { column: "팀", value: "A" }), [rows[0]]);
+  assert.deepEqual(filterPool(rows, { column: "팀", values: ["A", "a"] }), [
+    rows[0],
+    rows[1],
+  ]);
+  assert.deepEqual(filterPool(rows, { column: "팀", values: [""] }), [
+    rows[2],
+    rows[3],
+  ]);
+  assert.deepEqual(filterPool(rows, { column: "팀", values: [] }), []);
   assert.notEqual(filterPool(rows), rows);
 });
 

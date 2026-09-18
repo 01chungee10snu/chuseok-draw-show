@@ -348,9 +348,12 @@ export function drawSubset(rows, n) {
   return uniformSubset(rows, n);
 }
 
-export function filterPool(rows, { column = "", value = "" } = {}) {
+export function filterPool(rows, { column = "", values, value = "" } = {}) {
   if (!column) return [...rows];
-  return rows.filter((row) => row[column] === value);
+  const selected = new Set(
+    (Array.isArray(values) ? values : [value]).map((item) => item ?? ""),
+  );
+  return rows.filter((row) => selected.has(row[column] ?? ""));
 }
 
 export function createStageDeck(ids, randomInt = cryptoRandomInt) {

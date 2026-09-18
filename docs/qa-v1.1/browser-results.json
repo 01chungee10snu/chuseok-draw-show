@@ -1,0 +1,137 @@
+{
+  "version": "1.1.0",
+  "date": "2026-09-18",
+  "environment": "Mac Chrome, existing local validation page, 1440×1000 and 390×844",
+  "filters": {
+    "selected": [
+      {
+        "value": "경영기획팀",
+        "count": 14
+      },
+      {
+        "value": "구매기획팀",
+        "count": 20
+      }
+    ],
+    "expected": 34,
+    "empty": 0,
+    "manager": 150,
+    "senior": 90,
+    "all": 240
+  },
+  "races": [
+    {
+      "name": "group",
+      "before": 240,
+      "after": 125,
+      "meta": {
+        "type": "show_finished",
+        "session": "70ad59d2-b540-4930-a45e-fd093e4cf0a7",
+        "stage": "steel-drop",
+        "kind": "physics",
+        "renderedAs": "physics",
+        "reason": "completed",
+        "maxProgress": 0.9999999999999999,
+        "courseDuration": 20.97,
+        "pathSeed": 4111586508,
+        "arrivedIds": [
+          "r1lane0"
+        ],
+        "arrivalMatched": true,
+        "advancingIds": [
+          "r1lane0"
+        ],
+        "elapsed": 22.27
+      },
+      "smoothness": {
+        "frames": 17,
+        "comparisons": 16,
+        "stopped": 0,
+        "maxZoom": 1.4277768643928377,
+        "horizontalRange": 0
+      }
+    },
+    {
+      "name": "twin",
+      "before": 4,
+      "after": 2,
+      "meta": {
+        "type": "show_finished",
+        "session": "00650351-5579-43e6-bf75-b5603c03a45f",
+        "stage": "twin-orbit",
+        "kind": "physics",
+        "renderedAs": "physics",
+        "reason": "completed",
+        "maxProgress": 1.0106256824515816,
+        "courseDuration": 18,
+        "pathSeed": 1726234025,
+        "arrivedIds": [
+          "P001",
+          "P002"
+        ],
+        "arrivalMatched": true,
+        "advancingIds": [
+          "P001",
+          "P002"
+        ],
+        "elapsed": 19.22
+      },
+      "smoothness": {
+        "frames": 23,
+        "comparisons": 22,
+        "stopped": 0,
+        "maxZoom": 1.5995612298847195,
+        "horizontalRange": 0
+      }
+    },
+    {
+      "name": "final-visible",
+      "before": 2,
+      "after": 1,
+      "meta": {
+        "type": "show_finished",
+        "session": "6e18b14b-b55a-438e-85be-1ff09fae9e38",
+        "stage": "last-marble",
+        "kind": "physics",
+        "renderedAs": "physics",
+        "reason": "completed",
+        "maxProgress": 1,
+        "courseDuration": 18,
+        "pathSeed": 1926233132,
+        "arrivedIds": [
+          "P002"
+        ],
+        "arrivalMatched": true,
+        "advancingIds": [
+          "P002"
+        ],
+        "elapsed": 19.52
+      },
+      "smoothness": {
+        "frames": 23,
+        "comparisons": 22,
+        "stopped": 0,
+        "maxZoom": 1.3303335432111254,
+        "horizontalRange": 0
+      }
+    }
+  ],
+  "pause": {
+    "stage": "steel-drop",
+    "milliseconds": 600,
+    "raceStateUnchanged": true
+  },
+  "mobile": {
+    "width": 390,
+    "scrollWidth": 390,
+    "uniqueChoices": 16,
+    "estimatedParticipants": 240
+  },
+  "exceptions": [],
+  "notes": [
+    "Group and twin captures preceded the final finish-display refinement; only final-visible measures the final 0.6-second unobscured finish and 1.4-second confirmation.",
+    "An earlier final-stage QA run rejected its 14 samples against an arbitrary minimum of 15 after the app had completed correctly. All 13 movement comparisons were nonzero and the arrival matched. The final run checks actual movement and collected 23 samples.",
+    "Idle native requestAnimationFrame was observed at approximately 14–16 fps on this validation browser. These samples check coordinate interpolation and camera stability, not 60 fps or projector performance.",
+    "No real participant data was used."
+  ]
+}

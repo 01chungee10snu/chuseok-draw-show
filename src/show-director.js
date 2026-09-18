@@ -1,4 +1,5 @@
 import { PhysicsShowEngine } from "./physics-show-engine.js";
+import { preparePhysicsRace } from "./physics-race.js";
 
 export const STAGES = [
   {
@@ -72,7 +73,6 @@ export const GROUP_STAGE_IDS = STAGES.slice(0, 8).map((s) => s.id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const TAU = Math.PI * 2;
 const MAX_FRAME_SECONDS = 1;
-const PHYSICS_FRAME_SECONDS = 1 / 60;
 
 export class Sound {
   constructor() {
@@ -193,14 +193,35 @@ export class ShowDirector {
     this.running = false;
     this.paused = false;
     this.lastTime = null;
+    this.race = null;
+    this.raceFrame = null;
   }
   async play(
     tokens,
-    { stageId, duration = 12, reduced = false, caption = "" } = {},
+    {
+      stageId,
+      duration = 18,
+      reduced = false,
+      caption = "",
+      advancingIds = [],
+      seed = 0,
+    } = {},
   ) {
     if (this.running) throw Error("이미 진행 중인 연출입니다.");
     this.tokens = tokens.map((t, i) => ({ ...t, showIndex: i }));
+    this.advancingIds = [...advancingIds];
+    this.race = null;
+    this.raceFrame = null;
     this.stage = STAGES.find((s) => s.id === stageId) || STAGES[0];
+    this.arrivalShownAt = null;
+    const tokenIds = new Set(this.tokens.map((t) => t.id));
+    if (
+      tokenIds.size !== this.tokens.length ||
+      new Set(this.advancingIds).size !== this.advancingIds.length ||
+      this.advancingIds.some((id) => !tokenIds.has(id)) ||
+      (this.stage.kind === "physics" && !this.advancingIds.length)
+    )
+      throw new Error("다음 라운드 대상과 공의 식별자를 확인해 주세요.");
     this.duration = duration;
     this.time = 0;
     this.lastTick = -1;
@@ -218,19 +239,36 @@ export class ShowDirector {
       maxProgress: 0,
     };
     try {
-      this.onCaption(caption || this.stage.cue);
+      this.onCaption(
+        reduced
+          ? "움직임을 줄여 추첨 결과를 공개합니다."
+          : caption || this.stage.cue,
+      );
     } catch (error) {
       this.fail(error);
       throw error;
     }
     if (this.stage.kind === "physics" && !reduced) {
       try {
-        await this.engine.start(this.stage.id, this.tokens);
+        this.race = await preparePhysicsRace(
+          this.engine,
+          this.stage.id,
+          this.tokens,
+          this.advancingIds,
+          { minimumDuration: duration, seed },
+        );
+        this.duration = this.race.duration;
+        this.result.courseDuration = Number(this.duration.toFixed(2));
+        this.result.pathSeed = seed;
       } catch (e) {
         console.warn("show initialization unavailable; preserving draw", e);
+        this.engine.dispose();
         this.result.fallback = true;
         this.result.renderedAs = "reduced";
         this.result.reason = "renderer-unavailable";
+        this.onCaption(
+          "코스를 사용할 수 없어 확정된 결과를 정적으로 공개합니다.",
+        );
       }
     }
     this.initializing = false;
@@ -424,6 +462,7 @@ export class ShowDirector {
     }
     if (this.reduced || this.result.fallback) {
       this.drawReduced(progress);
+      if (this.time >= 1.6) this.drawFinishTray();
       if (this.time >= 2.4) {
         this.finish();
         return;
@@ -432,24 +471,20 @@ export class ShowDirector {
       return;
     }
     if (this.stage.kind === "physics") {
-      // Keep the engine's fixed-step budget intact when rendering falls behind.
-      // Paint once, after advancing all of this frame's bounded elapsed time.
-      for (let remaining = dt; remaining > 1e-9; ) {
-        const step = Math.min(PHYSICS_FRAME_SECONDS, remaining);
-        this.engine.step(step);
-        remaining -= step;
-      }
-      const frame = this.engine.frame();
+      const frame = this.race.sample(this.time);
+      this.raceFrame = frame;
       const p = frame.stats?.progress || 0;
       this.result.maxProgress = Math.max(this.result.maxProgress, p);
       this.drawPhysics(frame);
-      if (this.time >= this.duration && p >= 0.985) {
-        this.finish();
-        return;
-      }
-      if (this.time >= this.duration + 7) {
-        this.result.reason = "time-budget";
-        this.finish();
+      if (frame.complete) {
+        this.result.arrivedIds = [...frame.arrivedIds];
+        this.arrivalShownAt ??= this.time;
+        this.onProgress(1, "골인한 공이 다음 라운드로 갑니다");
+        this.onCaption("골인! 표시된 공이 다음 라운드로 진출합니다.");
+        // Let the audience see the ball on the finish line before the result tray.
+        const heldFor = this.time - this.arrivalShownAt;
+        if (heldFor >= 0.6) this.drawFinishTray();
+        if (heldFor >= 1.4) this.finish();
         return;
       }
       progress = Math.min(0.97, Math.max(progress * 0.8, p * 0.95));
@@ -466,7 +501,9 @@ export class ShowDirector {
         progress > 0.78 ? "잠시 후 결과 공개" : "우리 그룹을 함께 응원해요",
       );
       if (this.time >= this.duration) {
-        this.finish();
+        this.drawFinishTray();
+        if (this.time >= this.duration + (this.advancingIds.length ? 1.2 : 0))
+          this.finish();
         return;
       }
     }
@@ -482,15 +519,10 @@ export class ShowDirector {
     const top = 65,
       bottom = h - 68,
       areaH = bottom - top;
-    const zoom = Math.min(frame.camera.zoom, 2.4);
-    const scale = Math.min(w / 25, areaH / 13.6) * zoom;
-    const front = frame.tokens.reduce(
-      (a, b) => (!a || b.y > a.y ? b : a),
-      null,
-    );
-    const focus = frame.tokens.filter((x) => front.y - x.y < 3);
-    const fx = focus.reduce((s, t) => s + t.x, 0) / Math.max(1, focus.length);
-    const centerX = 12 + (fx - 12) * clamp((zoom - 1) / 1.4, 0, 1);
+    const zoom = Math.min(frame.camera.zoom, 1.6);
+    // Even a narrow screen must keep both side walls and the finishing ball visible.
+    const scale = Math.min(w / 25, (areaH / 13.6) * zoom);
+    const centerX = frame.camera.x;
     const centerY = frame.camera.y;
     const sx = (x) => w / 2 + (x - centerX) * scale,
       sy = (y) => (top + bottom) / 2 + (y - centerY) * scale;
@@ -511,7 +543,7 @@ export class ShowDirector {
         c.fillStyle = i % 2 ? this.colors.panel : this.colors.muted;
         c.fillRect(sx(i + 1), finishY, scale, 6);
       }
-      this.label("RESULT GATE", w / 2, finishY + 24, {
+      this.label("다음 라운드 · 골인", w / 2, finishY + 24, {
         size: 12,
         maxWidth: 200,
       });
@@ -570,6 +602,16 @@ export class ShowDirector {
       c.stroke();
       c.globalAlpha = 1;
       this.marble(token.token, x, y, clamp(token.radius * scale, 13, 25), true);
+      if (token.arrived) {
+        this.circle(
+          x,
+          y,
+          clamp(token.radius * scale, 13, 25) + 5,
+          null,
+          this.colors.accent,
+        );
+        this.label("진출", x, y + 34, { size: 13, maxWidth: 70 });
+      }
     }
     // Offscreen tokens stay represented; a camera move must never look like elimination.
     const off = frame.tokens.filter(
@@ -577,13 +619,51 @@ export class ShowDirector {
     );
     if (off.length) {
       c.globalAlpha = 0.9;
-      this.label(`함께 이동 중 ${off.length}개 그룹`, w / 2, top + 25, {
+      this.label(`코스 위쪽 · ${off.length}개 공`, w / 2, top + 25, {
         size: 12,
         maxWidth: w * 0.7,
       });
       c.globalAlpha = 1;
     }
     c.restore();
+  }
+  drawFinishTray() {
+    const selected = this.tokens.filter((t) =>
+      this.advancingIds.includes(t.id),
+    );
+    if (!selected.length) return;
+    const c = this.ctx,
+      w = this.w,
+      h = this.h;
+    c.save();
+    c.fillStyle = this.colors.panel;
+    c.globalAlpha = 0.95;
+    c.fillRect(0, h * 0.35, w, h * 0.38);
+    c.globalAlpha = 1;
+    this.label(
+      this.race ? "골인 · 다음 라운드 진출" : "다음 라운드 진출",
+      w / 2,
+      h * 0.41,
+      { size: 17, maxWidth: w - 30 },
+    );
+    selected.forEach((token, i) => {
+      const x =
+        w / 2 +
+        (i - (selected.length - 1) / 2) *
+          Math.min(145, (w - 36) / selected.length);
+      this.marble(token, x, h * 0.59, 23, false);
+      this.label(token.label, x, h * 0.68, {
+        size: w < 500 ? 12 : 15,
+        maxWidth: Math.min(130, (w - 36) / selected.length - 6),
+      });
+    });
+    c.restore();
+    this.onProgress(
+      1,
+      this.race
+        ? "골인한 공이 다음 라운드로 갑니다"
+        : "다음 라운드에 함께할 공입니다",
+    );
   }
   drawOrbit(progress) {
     const c = this.ctx,
@@ -638,7 +718,10 @@ export class ShowDirector {
     this.tokens.forEach((token, i) => {
       const x = left + (i % cols) * (cellW + gap),
         y = top + Math.floor(i / cols) * (cellH + gap);
-      const lit = tick % n === i;
+      const lit =
+        progress >= 0.88 && this.advancingIds.length
+          ? this.advancingIds.includes(token.id)
+          : tick % n === i;
       const wave = 0.12 + 0.13 * Math.sin(this.time * 3 - i);
       c.fillStyle = lit ? this.colors["lane-a"] : this.colors.surface;
       c.strokeStyle = lit ? this.colors.text : this.colors.line;
@@ -731,6 +814,16 @@ export class ShowDirector {
   }
   finish() {
     if (this.finished) return;
+    if (this.race) {
+      const arrived = new Set(this.result.arrivedIds || []);
+      if (
+        arrived.size !== this.advancingIds.length ||
+        this.advancingIds.some((id) => !arrived.has(id))
+      )
+        throw new Error("골인 기록과 다음 라운드 대상이 일치하지 않습니다.");
+      this.result.arrivalMatched = true;
+    }
+    this.result.advancingIds = [...this.advancingIds];
     this.finished = true;
     this.onProgress(1, "결과 공개");
     this.running = false;
@@ -746,5 +839,6 @@ export class ShowDirector {
     this.resizeObserver.disconnect();
     this.sound?.stop();
     this.engine.dispose?.();
+    this.race = null;
   }
 }

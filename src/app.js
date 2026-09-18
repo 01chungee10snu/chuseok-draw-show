@@ -4,6 +4,7 @@ import {
   chooseHeader,
   drawRound,
   drawSubset,
+  filterPool,
   createStageDeck,
 } from "./lucky-draw-model.js";
 import {
@@ -66,7 +67,7 @@ const state = {
   pending: null,
   round: 0,
   sessionId: "",
-  pool: { preset: "all", column: "", value: "" },
+  pool: { preset: "all", column: "", values: [] },
   exclude: true,
   epoch: 0,
 };
@@ -107,6 +108,7 @@ function lock() {
   const locked = state.busy || state.loading;
   for (const id of [
     "settingsButton",
+    "poolSettingsButton",
     "prepareButton",
     "demoButton",
     "csvInput",
@@ -125,9 +127,11 @@ function initialProbability() {
 function poolLabel() {
   if (state.pool.preset === "manager") return "매니저";
   if (state.pool.preset === "senior") return "책임매니저 이상 · 임원 포함";
-  return state.pool.column
-    ? `${state.pool.column} · ${state.pool.value || "(미입력)"}`
-    : "전체 참가자";
+  if (!state.pool.column) return "전체 참가자";
+  if (!state.pool.values.length) return `${state.pool.column} · 선택 없음`;
+  if (state.pool.values.length === 1)
+    return `${state.pool.column} · ${state.pool.values[0] || "(미입력)"}`;
+  return `${state.pool.column} · ${state.pool.values.length}개 값`;
 }
 function filteredRows(pool = state.pool, exclude = state.exclude) {
   let rows = state.rows;
@@ -135,8 +139,7 @@ function filteredRows(pool = state.pool, exclude = state.exclude) {
     rows = rows.filter((r) => r["직위"] === "매니저");
   else if (pool.preset === "senior")
     rows = rows.filter((r) => r["직위"] && r["직위"] !== "매니저");
-  else if (pool.column)
-    rows = rows.filter((r) => r[pool.column] === pool.value);
+  else if (pool.column) rows = filterPool(rows, pool);
   return rows.filter((r) => !exclude || !state.winnerIds.has(r._id));
 }
 function renderCounts() {
@@ -391,7 +394,7 @@ async function loadText(text, { source, demo = false }, expectedEpoch) {
   state.winnerIds = new Set();
   state.audit = [];
   state.excludedHeaders = new Set();
-  state.pool = { preset: "all", column: "", value: "" };
+  state.pool = { preset: "all", column: "", values: [] };
   state.exclude = true;
   deck.reset();
   resetSession();
@@ -464,7 +467,9 @@ function prepareHeader() {
       `ROUND ${String(state.round).padStart(2, "0")} · 이번 기준`,
       plan.label,
       "오른쪽에서 나의 편을 확인해 주세요.",
-      "같은 편의 그룹은 함께 다음 라운드로 갑니다.",
+      STAGES.find((s) => s.id === stageId).kind === "physics"
+        ? "A·B 대표 공 중 먼저 골인한 편의 그룹 전체가 진출합니다."
+        : "마지막에 선택 표시가 남는 편의 그룹 전체가 진출합니다.",
     );
     status("내 그룹을 확인하고, 진행자가 경기를 시작해 주세요.");
   } else {
@@ -539,6 +544,7 @@ async function runPending() {
             probability: p.target / state.alive.length,
           };
     p.committedAt = new Date().toISOString();
+    p.raceSeed = crypto.getRandomValues(new Uint32Array(1))[0];
     state.audit.push({
       type: "draw_committed",
       session: state.sessionId,
@@ -569,11 +575,11 @@ async function runPending() {
     `LIVE · ${STAGES.find((s) => s.id === p.stageId).name}`;
   let tokens;
   if (p.kind === "header")
-    tokens = p.plan.groups.map((g, i) => ({
-      id: `r${state.round}g${i}`,
-      label: g.label,
-      lane: g.lane,
-      count: g.count,
+    tokens = p.plan.lanes.map((lane, i) => ({
+      id: `r${state.round}lane${i}`,
+      label: `${i ? "B" : "A"}편 · ${lane.count}명`,
+      lane: i,
+      count: lane.count,
     }));
   else if (p.kind === "sealed")
     tokens = Array.from({ length: 6 }, (_, i) => ({
@@ -597,11 +603,27 @@ async function runPending() {
       : `${p.before.length}명 중 ${p.target}명을 기다립니다.`,
   );
   let meta;
+  const advancingIds =
+    p.kind === "header"
+      ? [tokens[p.result.lane].id]
+      : p.kind === "final"
+        ? p.result.survivors.map((row) => row._drawId)
+        : [];
   try {
     meta = await director.play(tokens, {
       stageId: p.stageId,
-      duration: config.pace === "long" ? 18 : 12,
+      duration: config.pace === "long" ? 24 : 18,
       reduced: reduced(),
+      advancingIds,
+      seed: p.raceSeed,
+      caption:
+        STAGES.find((s) => s.id === p.stageId).kind !== "physics"
+          ? "마지막에 선택 표시가 남는 공을 확인해 주세요."
+          : p.kind === "header"
+            ? "먼저 골인한 대표 공의 편 전체가 다음 라운드로 갑니다."
+            : p.kind === "final"
+              ? `먼저 골인한 ${p.target}개의 공이 진출합니다.`
+              : "최종 후보를 기다립니다.",
     });
   } catch (error) {
     state.audit.push({
@@ -647,7 +669,7 @@ function applyPending() {
       `ROUND ${String(state.round).padStart(2, "0")} · 함께 남은 사람들`,
       `${state.alive.length}명, 다음 무대로`,
       p.result.selectedLabels.join(" · "),
-      `${p.result.lane ? "B" : "A"} 편이 선택됐습니다.`,
+      `${p.result.lane ? "B" : "A"} 편이 다음 라운드로 진출합니다.`,
     );
   } else if (p.kind === "sealed") {
     showOverlay(
@@ -781,7 +803,7 @@ function populateDataSettings() {
   $("excludeWinners").checked = state.exclude;
   $("hrPresets").hidden = !state.rows.some((r) => r["직위"] === "매니저");
   draftPreset = state.pool.preset;
-  populatePoolValues(state.pool.value);
+  populatePoolValues(state.pool.values);
   markPreset();
   const now = new Set(eligibleHeaders(state.rows).map((p) => p.header));
   $("headerChecks").innerHTML =
@@ -801,24 +823,55 @@ function markPreset() {
       b.classList.toggle("active", b.dataset.preset === draftPreset),
     );
 }
-function populatePoolValues(selected) {
-  const key = $("poolColumn").value;
-  const values = key
-    ? [...new Set(state.rows.map((r) => r[key] ?? ""))].sort((a, b) =>
-        String(a).localeCompare(String(b), "ko"),
-      )
-    : [];
-  $("poolValue").innerHTML =
-    values
-      .map(
-        (v) => `<option value="${html(v)}">${html(v || "(미입력)")}</option>`,
-      )
-      .join("") || '<option value="">전체</option>';
-  $("poolValueLabel").hidden = !key;
-  if (selected !== undefined && values.includes(selected))
-    $("poolValue").value = selected;
+function selectedPoolValues() {
+  return [...document.querySelectorAll("#poolValues input:checked")].map(
+    (input) => input.value,
+  );
 }
-function openSettings() {
+function draftPool() {
+  return {
+    preset: draftPreset,
+    column: $("poolColumn").value,
+    values: selectedPoolValues(),
+  };
+}
+function updatePoolEstimate() {
+  const count = filteredRows(draftPool(), $("excludeWinners").checked).length;
+  $("poolEstimate").textContent =
+    `적용 예상 인원 ${count.toLocaleString("ko")}명`;
+  $("poolEstimate").classList.toggle("empty", count === 0);
+}
+function populatePoolValues(selected = []) {
+  const key = $("poolColumn").value;
+  const counts = new Map();
+  if (key)
+    state.rows.forEach((row) => {
+      const value = row[key] ?? "";
+      counts.set(value, (counts.get(value) || 0) + 1);
+    });
+  const values = [...counts.keys()].sort((a, b) =>
+    String(a).localeCompare(String(b), "ko"),
+  );
+  const checked = new Set(Array.isArray(selected) ? selected : [selected]);
+  $("poolValues").innerHTML = values
+    .map(
+      (value) =>
+        `<label><input type="checkbox" value="${html(value)}" ${checked.has(value) ? "checked" : ""}><span class="pool-value-name">${html(value || "(미입력)")}</span><span class="pool-value-count">${counts.get(value).toLocaleString("ko")}명</span></label>`,
+    )
+    .join("");
+  $("poolValuePanel").hidden = !key;
+  $("poolValues")
+    .querySelectorAll("input")
+    .forEach((input) => {
+      input.onchange = () => {
+        draftPreset = "all";
+        markPreset();
+        updatePoolEstimate();
+      };
+    });
+  updatePoolEstimate();
+}
+function openSettings(focusPool = false) {
   if (state.busy || state.loading) return;
   for (const [id, key] of [
     ["titleInput", "title"],
@@ -834,17 +887,43 @@ function openSettings() {
   backgroundPending = undefined;
   $("settingsError").textContent = "";
   $("settingsDialog").showModal();
+  if (focusPool)
+    requestAnimationFrame(() => {
+      $("poolFilter").scrollIntoView({ block: "center" });
+      $("poolColumn").focus();
+    });
 }
-$("settingsButton").onclick = openSettings;
+$("settingsButton").onclick = () => openSettings();
+$("poolSettingsButton").onclick = () => openSettings(true);
 $("poolColumn").onchange = () => {
   draftPreset = "all";
-  populatePoolValues();
+  const values = $("poolColumn").value
+    ? [...new Set(state.rows.map((row) => row[$("poolColumn").value] ?? ""))]
+    : [];
+  populatePoolValues(values);
   markPreset();
 };
-$("poolValue").onchange = () => {
+$("selectAllPoolValues").onclick = () => {
+  $("poolValues")
+    .querySelectorAll("input")
+    .forEach((input) => {
+      input.checked = true;
+    });
   draftPreset = "all";
   markPreset();
+  updatePoolEstimate();
 };
+$("clearPoolValues").onclick = () => {
+  $("poolValues")
+    .querySelectorAll("input")
+    .forEach((input) => {
+      input.checked = false;
+    });
+  draftPreset = "all";
+  markPreset();
+  updatePoolEstimate();
+};
+$("excludeWinners").onchange = updatePoolEstimate;
 document.querySelectorAll("[data-preset]").forEach(
   (b) =>
     (b.onclick = () => {
@@ -852,6 +931,7 @@ document.querySelectorAll("[data-preset]").forEach(
       $("poolColumn").value = "";
       populatePoolValues();
       markPreset();
+      updatePoolEstimate();
     }),
 );
 $("settingsForm").onsubmit = async (e) => {
@@ -869,7 +949,7 @@ $("settingsForm").onsubmit = async (e) => {
   const pool = {
     preset: draftPreset,
     column: $("poolColumn").value,
-    value: $("poolValue").value,
+    values: selectedPoolValues(),
   };
   const exclude = $("excludeWinners").checked;
   const excluded = new Set(state.excludedHeaders);
@@ -1080,7 +1160,7 @@ $("exportAudit").onclick = () =>
     JSON.stringify(
       {
         app: "럭키드로우",
-        version: "1.0.1",
+        version: "1.1.0",
         event: config.title,
         demo: state.demo,
         rosterSha256: state.hash,
@@ -1138,7 +1218,7 @@ window.addEventListener("beforeunload", (e) => {
 if (["127.0.0.1", "localhost"].includes(location.hostname))
   Object.defineProperty(window, "luckyDrawQA", {
     get: () => ({
-      version: "1.0.1",
+      version: "1.1.0",
       busy: state.busy,
       loading: state.loading,
       count: state.alive.length,
@@ -1151,6 +1231,20 @@ if (["127.0.0.1", "localhost"].includes(location.hostname))
       winners: state.winners.length,
       history: state.history.map((h) => ({ ...h })),
       physicsProgress: director.result?.maxProgress || 0,
+      race: director.raceFrame
+        ? {
+            time: director.time,
+            duration: director.duration,
+            goalY: director.raceFrame.stage.goalY,
+            camera: { ...director.raceFrame.camera },
+            tokens: director.raceFrame.tokens.map((t) => ({
+              id: t.token.id,
+              x: t.x,
+              y: t.y,
+              arrived: t.arrived,
+            })),
+          }
+        : null,
       audit: state.audit
         .filter((x) => x.type === "show_finished")
         .map((x) => ({ ...x })),

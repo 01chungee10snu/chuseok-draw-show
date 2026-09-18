@@ -57,6 +57,7 @@ function playback(t) {
     "drawTunnel",
     "drawReduced",
     "drawPhysics",
+    "drawFinishTray",
   ])
     director[name] = () => {};
   t.after(() => {
@@ -84,7 +85,10 @@ function playback(t) {
 for (const interval of [100, 600]) {
   test(`visible ${interval}ms frames complete a 12-second show on time`, async (t) => {
     const { director, frame } = playback(t);
-    const result = director.play(tokens, { stageId: "orbit-rally" });
+    const result = director.play(tokens, {
+      stageId: "orbit-rally",
+      duration: 12,
+    });
     frame(1000);
     for (let now = 1000 + interval; now <= 13000 + interval; now += interval)
       frame(now);
@@ -155,14 +159,25 @@ test("asynchronous stage loading is excluded from show duration", async (t) => {
     new Promise((resolve) => {
       loaded = resolve;
     });
-  director.engine.step = () => {};
-  director.engine.frame = () => ({ stats: { progress: 1 }, timeScale: 1 });
-  const result = director.play(tokens, { stageId: "steel-drop", duration: 1 });
+  const fixture = (y) => ({
+    stage: { goalY: 1 },
+    entities: [],
+    camera: { x: 0, y: 0, zoom: 1 },
+    timeScale: 1,
+    tokens: tokens.map((token) => ({ token, x: 0, y, angle: 0, radius: 0.5 })),
+  });
+  director.engine.step = () => fixture(1);
+  const result = director.play(tokens, {
+    stageId: "steel-drop",
+    duration: 1,
+    advancingIds: [tokens[0].id],
+  });
   frame(1000);
   frame(1100);
   assert.equal(director.time, 0);
-  loaded();
-  await Promise.resolve();
+  loaded(fixture(0));
+  while (director.initializing)
+    await new Promise((resolve) => setImmediate(resolve));
   frame(1400);
   assert.equal(
     director.time,
@@ -170,6 +185,9 @@ test("asynchronous stage loading is excluded from show duration", async (t) => {
     "WASM loading does not spend the show's duration",
   );
   frame(2400);
+  frame(3400);
+  frame(3600);
+  frame(4000);
   assert.equal(director.running, false);
   await result;
 });
@@ -199,10 +217,27 @@ test("real Box2D reaches the final gate with 600ms render intervals", async (t) 
   const Box2D = await Box2DFactory({ wasmBinary });
   director.engine.Box2D = Box2D;
   director.engine.readyPromise = Promise.resolve(Box2D);
-  const result = director.play(tokens, { stageId: "twin-orbit" });
-  while (director.initializing) await Promise.resolve();
+  const advancingIds = [tokens[1].id, tokens[3].id];
+  let trayDraws = 0,
+    sawFinish = false;
+  director.drawFinishTray = () => {
+    trayDraws++;
+  };
+  const result = director.play(tokens, { stageId: "twin-orbit", advancingIds });
+  while (director.initializing)
+    await new Promise((resolve) => setImmediate(resolve));
   frame(1000);
-  for (let now = 1600; now <= 20200 && director.running; now += 600) frame(now);
+  for (let now = 1600; now <= 70000 && director.running; now += 600) {
+    frame(now);
+    if (director.raceFrame?.complete && !sawFinish) {
+      sawFinish = true;
+      assert.equal(
+        trayDraws,
+        0,
+        "the finish line stays visible before the result tray",
+      );
+    }
+  }
   assert.equal(director.running, false);
   const completed = await result;
   assert.equal(completed.reason, "completed");
@@ -210,5 +245,9 @@ test("real Box2D reaches the final gate with 600ms render intervals", async (t) 
     completed.maxProgress >= 0.985,
     `progress ${completed.maxProgress}`,
   );
-  assert.ok(completed.elapsed < 19);
+  assert.equal(completed.arrivalMatched, true);
+  assert.deepEqual(new Set(completed.arrivedIds), new Set(advancingIds));
+  assert.equal(sawFinish, true);
+  assert.ok(trayDraws > 0);
+  assert.ok(completed.elapsed <= completed.courseDuration + 2.41);
 });

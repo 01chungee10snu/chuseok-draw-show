@@ -72,9 +72,10 @@ function walls(width, goalY) {
 
 function alternatingRails(width, ys, gap = 5.2, angle = 0.12) {
   const cx = width / 2;
-  const hw = (cx - gap / 2 - 1.7) / 2;
-  const leftX = 1.7 + hw;
-  const rightX = width - 1.7 - hw;
+  // Extend the outer ends into the wall; a narrow gap there traps marbles.
+  const hw = (cx - gap / 2 - 0.7) / 2;
+  const leftX = 0.7 + hw;
+  const rightX = width - 0.7 - hw;
   const out = [];
   ys.forEach((y, i) => {
     const mag = Math.max(0.2, Math.abs(angle));
@@ -131,7 +132,8 @@ function ellipticalPegRing(cx, cy, rx, ry, count, gapIndex = -1, opts = {}) {
     if (
       gaps.some(
         (gap) =>
-          gap >= 0 && Math.min(Math.abs(i - gap), count - Math.abs(i - gap)) <= 1,
+          gap >= 0 &&
+          Math.min(Math.abs(i - gap), count - Math.abs(i - gap)) <= 1,
       )
     )
       continue;
@@ -189,16 +191,11 @@ function steelDrop() {
     spinner(12, 16.1, 3.1, 1.45, 0.22),
     spinner(12, 24.0, 2.55, -1.55, -0.18),
     spinner(12, 39.2, 2.8, 1.95, 0.0),
-    box(5.2, 43.2, 3.2, 0.13, -0.2, { friction: 0.04, tone: "finishRail" }),
-    box(18.8, 43.2, 3.2, 0.13, 0.2, { friction: 0.04, tone: "finishRail" }),
+    box(5.2, 43.2, 3.2, 0.13, 0.2, { friction: 0.04, tone: "finishRail" }),
+    box(18.8, 43.2, 3.2, 0.13, -0.2, { friction: 0.04, tone: "finishRail" }),
   ];
   return stage("steel-drop", width, goalY, entities, {
     gravity: 10.3,
-    zoomY: 31.5,
-    slowZone: 14.5,
-    maxZoom: 2.6,
-    minTimeScale: 0.28,
-    cruiseSpeed: 3.0,
     palette: ["#07101a", "#18344c", "#7e9cb5"],
     cameraLead: 1.2,
   });
@@ -225,11 +222,6 @@ function moonOrbit() {
   entities.push(...alternatingRails(width, [15.5, 27.3, 38.0], 6.4, 0.09));
   return stage("moon-orbit", width, goalY, entities, {
     gravity: 7.8,
-    zoomY: 24.5,
-    slowZone: 18.5,
-    maxZoom: 3.0,
-    minTimeScale: 0.24,
-    cruiseSpeed: 3.0,
     palette: ["#05070c", "#18243e", "#d0c179"],
     cameraLead: 0.8,
   });
@@ -259,16 +251,11 @@ function pinballGrid() {
       restitution: 0.88,
     }),
     spinner(12, 38.0, 3.0, 2.55, 0, { tone: "electric", restitution: 0.92 }),
-    box(5.2, 46.4, 3.9, 0.13, -0.22, { restitution: 0.56, friction: 0.04 }),
-    box(18.8, 46.4, 3.9, 0.13, 0.22, { restitution: 0.56, friction: 0.04 }),
+    box(5.2, 46.4, 3.9, 0.13, 0.22, { restitution: 0.56, friction: 0.04 }),
+    box(18.8, 46.4, 3.9, 0.13, -0.22, { restitution: 0.56, friction: 0.04 }),
   ];
   return stage("pinball-grid", width, goalY, entities, {
     gravity: 10.7,
-    zoomY: 35.0,
-    slowZone: 15.0,
-    maxZoom: 2.65,
-    minTimeScale: 0.3,
-    cruiseSpeed: 2.6,
     palette: ["#06101d", "#0e4162", "#64d9ff"],
     cameraLead: 1.0,
   });
@@ -302,16 +289,11 @@ function furnaceSplit() {
       radius: 0.27,
       restitution: 0.68,
     }),
-    box(4.8, 39.4, 3.5, 0.13, -0.22, { friction: 0.04, tone: "furnace" }),
-    box(19.2, 39.4, 3.5, 0.13, 0.22, { friction: 0.04, tone: "furnace" }),
+    box(4.8, 39.4, 3.5, 0.13, 0.22, { friction: 0.04, tone: "furnace" }),
+    box(19.2, 39.4, 3.5, 0.13, -0.22, { friction: 0.04, tone: "furnace" }),
   ];
   return stage("furnace-split", width, goalY, entities, {
     gravity: 9.7,
-    zoomY: 25.0,
-    slowZone: 17.0,
-    maxZoom: 2.75,
-    minTimeScale: 0.25,
-    cruiseSpeed: 3.0,
     palette: ["#100604", "#57200e", "#ff9344"],
     cameraLead: 1.0,
   });
@@ -342,22 +324,17 @@ function lastGate() {
   entities.push(
     ...pegField({
       width,
-      startY: 9.5,
+      startY: 11.9,
       rows: 4,
       cols: 5,
       xMargin: 4.5,
-      rowGap: 6.8,
+      rowGap: 7.0,
       radius: 0.27,
       restitution: 0.72,
     }),
   );
   return stage("last-gate", width, goalY, entities, {
     gravity: 9.2,
-    zoomY: 28.0,
-    slowZone: 14.0,
-    maxZoom: 2.8,
-    minTimeScale: 0.24,
-    cruiseSpeed: 2.4,
     palette: ["#090705", "#443113", "#ffd166"],
     cameraLead: 0.7,
   });
@@ -384,11 +361,6 @@ function spotlightCut() {
   ];
   return stage("spotlight-cut", width, goalY, entities, {
     gravity: 8.5,
-    zoomY: 25.5,
-    slowZone: 12.5,
-    maxZoom: 2.9,
-    minTimeScale: 0.25,
-    cruiseSpeed: 2.3,
     palette: ["#050608", "#252016", "#ffe8a3"],
     cameraLead: 0.6,
   });
@@ -427,11 +399,6 @@ function twinOrbit() {
   ];
   return stage("twin-orbit", width, goalY, entities, {
     gravity: 7.9,
-    zoomY: 23.0,
-    slowZone: 13.0,
-    maxZoom: 3.1,
-    minTimeScale: 0.22,
-    cruiseSpeed: 3.0,
     palette: ["#06070a", "#1d2640", "#b6c9ff"],
     cameraLead: 0.5,
   });
@@ -470,12 +437,12 @@ function lastMarble() {
       tone: "finalBlade",
       restitution: 0.74,
     }),
-    box(6.2, 34.2, 3.0, 0.12, -0.24, {
+    box(6.2, 34.2, 3.0, 0.12, 0.24, {
       restitution: 0.44,
       friction: 0.03,
       tone: "finalRail",
     }),
-    box(17.8, 36.8, 3.0, 0.12, 0.24, {
+    box(17.8, 36.8, 3.0, 0.12, -0.24, {
       restitution: 0.44,
       friction: 0.03,
       tone: "finalRail",
@@ -484,11 +451,6 @@ function lastMarble() {
   ];
   return stage("last-marble", width, goalY, entities, {
     gravity: 8.8,
-    zoomY: 25.0,
-    slowZone: 16.0,
-    maxZoom: 3.8,
-    minTimeScale: 0.2,
-    cruiseSpeed: 2.25,
     palette: ["#030405", "#2e210c", "#ffd166"],
     cameraLead: 0.35,
   });
@@ -510,11 +472,18 @@ function stage(id, width, goalY, entities, opts) {
     stuckDelay: 2.25,
     stuckSpeed: 0.11,
     ...opts,
+    // A readable, unhurried race. Slow motion is confined to the finish approach.
+    gravity: opts.gravity * 0.85,
+    cruiseSpeed: 1,
+    minTimeScale: 0.58,
+    slowZone: 5,
+    zoomY: goalY - 5,
+    maxZoom: 1.6,
     quality: {
       entityCount: entities.length,
       kinematicCount,
       courseHeight: goalY,
-      cruiseSpeed: opts.cruiseSpeed ?? 1,
+      cruiseSpeed: 1,
       hasCamera: true,
       hasSlowMotion: true,
       hasStuckWatchdog: true,
