@@ -11,6 +11,8 @@ This project was informed by the open-source physics/rendering architecture of `
 
 The upstream project name/branding is not used as this application's product name. The current application retains its own fair-draw engine; physics is used only as a result-reveal layer.
 
+The v1.2 courses also draw on the upstream map primitives and contact-triggered obstacle lifecycle in `src/data/maps.ts` and `src/physics-box2d.ts` at commit `47230e3`. This app's moving-body paths, course layouts, immutable replay and breakaway rendering are adapted to its own stage registry and fair-draw protocol. The MIT attribution above applies to this reference and adaptation.
+
 ## box2d-wasm
 
 The browser physics layer uses `box2d-wasm`.

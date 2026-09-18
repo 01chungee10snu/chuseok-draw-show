@@ -6,13 +6,13 @@ export const STAGES = [
     id: "steel-drop",
     name: "중력 계단",
     kind: "physics",
-    cue: "층층이 내려가는 공을 따라가세요.",
+    cue: "움직이는 회전판과 피스톤 사이를 지나갑니다.",
   },
   {
     id: "moon-orbit",
     name: "회전 미로",
     kind: "physics",
-    cue: "돌아가는 미로, 마지막 출구는 어디일까요?",
+    cue: "공전하는 범퍼와 회전 미로를 통과합니다.",
   },
   {
     id: "pinball-grid",
@@ -31,6 +31,18 @@ export const STAGES = [
     name: "라스트 게이트",
     kind: "physics",
     cue: "마지막 문을 향해 함께 갑니다.",
+  },
+  {
+    id: "gear-cascade",
+    name: "기어 캐스케이드",
+    kind: "physics",
+    cue: "맞물린 회전 기어 사이로 길이 열립니다.",
+  },
+  {
+    id: "breakaway-steps",
+    name: "브레이크어웨이",
+    kind: "physics",
+    cue: "공이 닿으면 발판이 무너집니다. 마지막 길을 지켜보세요.",
   },
   {
     id: "orbit-rally",
@@ -69,7 +81,7 @@ export const STAGES = [
     cue: "마지막 순간, 오늘의 행운이 열립니다.",
   },
 ];
-export const GROUP_STAGE_IDS = STAGES.slice(0, 8).map((s) => s.id);
+export const GROUP_STAGE_IDS = STAGES.slice(0, -3).map((s) => s.id);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const TAU = Math.PI * 2;
 const MAX_FRAME_SECONDS = 1;
@@ -205,6 +217,7 @@ export class ShowDirector {
       caption = "",
       advancingIds = [],
       seed = 0,
+      exactDuration = false,
     } = {},
   ) {
     if (this.running) throw Error("이미 진행 중인 연출입니다.");
@@ -223,6 +236,7 @@ export class ShowDirector {
     )
       throw new Error("다음 라운드 대상과 공의 식별자를 확인해 주세요.");
     this.duration = duration;
+    this.exactDuration = exactDuration;
     this.time = 0;
     this.lastTick = -1;
     this.paused = false;
@@ -237,6 +251,8 @@ export class ShowDirector {
       renderedAs: reduced ? "reduced" : this.stage.kind,
       reason: "completed",
       maxProgress: 0,
+      configuredDuration: duration,
+      timing: exactDuration ? "fixed" : "natural",
     };
     try {
       this.onCaption(
@@ -255,7 +271,11 @@ export class ShowDirector {
           this.stage.id,
           this.tokens,
           this.advancingIds,
-          { minimumDuration: duration, seed },
+          {
+            minimumDuration: duration,
+            playbackDuration: exactDuration ? duration : undefined,
+            seed,
+          },
         );
         this.duration = this.race.duration;
         this.result.courseDuration = Number(this.duration.toFixed(2));
@@ -502,7 +522,11 @@ export class ShowDirector {
       );
       if (this.time >= this.duration) {
         this.drawFinishTray();
-        if (this.time >= this.duration + (this.advancingIds.length ? 1.2 : 0))
+        if (
+          this.time >=
+          this.duration +
+            (this.exactDuration ? 1.4 : this.advancingIds.length ? 1.2 : 0)
+        )
           this.finish();
         return;
       }
@@ -548,14 +572,49 @@ export class ShowDirector {
         maxWidth: 200,
       });
     }
-    for (const { def, x, y, angle } of frame.entities) {
+    for (const {
+      def,
+      x,
+      y,
+      angle,
+      active: enabled,
+      brokenFor = 0,
+    } of frame.entities) {
+      if (enabled === false && brokenFor >= 0.3) continue;
+      const motion = def.motion;
+      if (motion && (motion.x || motion.y)) {
+        c.save();
+        c.globalAlpha = 0.36;
+        c.strokeStyle = this.colors.muted;
+        c.lineWidth = 1;
+        c.setLineDash([3, 6]);
+        c.beginPath();
+        if (motion.kind === "orbit") {
+          c.ellipse(
+            sx(def.x),
+            sy(def.y),
+            Math.abs(motion.x) * scale,
+            Math.abs(motion.y) * scale,
+            0,
+            0,
+            TAU,
+          );
+        } else {
+          c.moveTo(sx(def.x - (motion.x || 0)), sy(def.y - (motion.y || 0)));
+          c.lineTo(sx(def.x + (motion.x || 0)), sy(def.y + (motion.y || 0)));
+        }
+        c.stroke();
+        c.restore();
+      }
       c.save();
+      if (enabled === false) c.globalAlpha = Math.max(0, 1 - brokenFor / 0.3);
       c.translate(sx(x), sy(y));
       c.rotate(angle);
       const active = def.bodyType === "kinematic";
-      c.fillStyle = active ? this.colors.muted : this.colors.surface;
+      c.fillStyle =
+        active || def.breakOnContact ? this.colors.muted : this.colors.surface;
       c.strokeStyle = active ? this.colors.text : this.colors.line;
-      c.lineWidth = Math.max(1, scale * 0.025);
+      c.lineWidth = active ? 1.7 : Math.max(1, scale * 0.025);
       if (def.kind === "box") {
         c.beginPath();
         c.roundRect(
@@ -567,11 +626,32 @@ export class ShowDirector {
         );
         c.fill();
         c.stroke();
-        if (active)
+        if (def.breakOnContact) {
+          c.strokeStyle = this.colors.panel;
+          c.lineWidth = 2;
+          c.beginPath();
+          for (let notch = -2; notch <= 2; notch++) {
+            c.moveTo((notch * def.hw * scale) / 3, -def.hh * scale);
+            c.lineTo((notch * def.hw * scale) / 3 + 4, def.hh * scale);
+          }
+          c.stroke();
+        }
+        if (active) {
           this.circle(0, 0, Math.max(2, scale * 0.12), this.colors.panel);
+          for (const end of [-1, 1])
+            this.circle(
+              end * (def.hw - 0.18) * scale,
+              0,
+              Math.max(2, def.hh * scale * 0.65),
+              this.colors.text,
+            );
+        }
       } else if (def.kind === "circle") {
         this.circle(0, 0, def.radius * scale, c.fillStyle, c.strokeStyle);
-        if (def.radius > 0.5) this.circle(0, 0, 3, this.colors.panel);
+        if (active) {
+          this.circle(0, 0, def.radius * scale * 0.62, null, this.colors.panel);
+          this.circle(0, 0, Math.max(2, scale * 0.1), this.colors.text);
+        } else if (def.radius > 0.5) this.circle(0, 0, 3, this.colors.panel);
       }
       c.restore();
       if (def.kind === "polyline") {

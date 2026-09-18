@@ -9,6 +9,8 @@ const box = (x, y, hw, hh, angle = 0, opts = {}) => ({
   angle,
   bodyType: opts.bodyType || "static",
   angularVelocity: opts.angularVelocity || 0,
+  motion: opts.motion,
+  breakOnContact: opts.breakOnContact || false,
   restitution: opts.restitution ?? 0.34,
   friction: opts.friction ?? 0.22,
   tone: opts.tone || "steel",
@@ -21,6 +23,7 @@ const circle = (x, y, radius, opts = {}) => ({
   radius,
   bodyType: opts.bodyType || "static",
   angularVelocity: opts.angularVelocity || 0,
+  motion: opts.motion,
   restitution: opts.restitution ?? 0.72,
   friction: opts.friction ?? 0.14,
   tone: opts.tone || "steel",
@@ -36,12 +39,28 @@ const line = (points, opts = {}) => ({
 });
 
 const spinner = (x, y, length = 2.8, speed = 1.8, angle = 0, opts = {}) =>
-  box(x, y, length, opts.thickness ?? 0.12, angle, {
+  box(x, y, length, opts.thickness ?? 0.18, angle, {
     ...opts,
     bodyType: "kinematic",
     angularVelocity: speed,
     restitution: opts.restitution ?? 0.72,
     tone: opts.tone || "kinetic",
+  });
+
+const orbitBumper = (x, y, rx, ry, period, phase = 0) =>
+  circle(x, y, 0.58, {
+    bodyType: "kinematic",
+    restitution: 0.76,
+    tone: "orbitBumper",
+    motion: { kind: "orbit", x: rx, y: ry, period, phase },
+  });
+
+const piston = (x, y, phase = 0) =>
+  circle(x, y, 0.7, {
+    bodyType: "kinematic",
+    restitution: 0.7,
+    tone: "piston",
+    motion: { kind: "shuttle", y: 1.2, period: 3.8, phase },
   });
 
 function walls(width, goalY) {
@@ -109,6 +128,7 @@ function pegField({
   rowGap = 2.05,
   radius = 0.29,
   restitution = 0.82,
+  moving = false,
 }) {
   const out = [];
   const usable = width - xMargin * 2;
@@ -117,8 +137,21 @@ function pegField({
     for (let c = 0; c < cols; c += 1) {
       const x = xMargin + (usable * c) / Math.max(1, cols - 1) + offset;
       if (x > width - xMargin + 0.15) continue;
+      const active = moving && c === (r % 2 ? cols - 2 : 1);
       out.push(
-        circle(x, startY + r * rowGap, radius, { restitution, tone: "peg" }),
+        circle(x, startY + r * rowGap, radius * (active ? 1.4 : 1), {
+          restitution,
+          tone: "peg",
+          bodyType: active ? "kinematic" : "static",
+          motion: active
+            ? {
+                kind: "shuttle",
+                x: 0.65,
+                period: 3.4 + r * 0.15,
+                phase: (r * PI) / 2,
+              }
+            : undefined,
+        }),
       );
     }
   }
@@ -188,9 +221,15 @@ function steelDrop() {
       radius: 0.24,
       restitution: 0.62,
     }),
-    spinner(12, 16.1, 3.1, 1.45, 0.22),
-    spinner(12, 24.0, 2.55, -1.55, -0.18),
-    spinner(12, 39.2, 2.8, 1.95, 0.0),
+    spinner(12, 16.1, 3.1, 1.45, 0.22, {
+      motion: { kind: "shuttle", x: 1.6, period: 4.5 },
+    }),
+    spinner(12, 24.0, 2.55, 0, -0.18, {
+      motion: { kind: "swing", swing: 1.15, period: 4.2 },
+    }),
+    piston(5, 27, 0),
+    piston(19, 27, PI),
+    spinner(12, 39.2, 2.8, 1.65, 0.0),
     box(5.2, 43.2, 3.2, 0.13, 0.2, { friction: 0.04, tone: "finishRail" }),
     box(18.8, 43.2, 3.2, 0.13, -0.2, { friction: 0.04, tone: "finishRail" }),
   ];
@@ -216,7 +255,9 @@ function moonOrbit() {
       ...crossSpinner(12, cy, 3.0 - i * 0.2, i % 2 ? -1.25 : 1.35, {
         tone: "moonBlade",
         restitution: 0.68,
+        motion: { kind: "orbit", x: 1.2, y: 0.55, period: 5.2, phase: i * PI },
       }),
+      orbitBumper(12, cy, 4.4 - i * 0.4, 1.45, 4.6 + i * 0.4, i * PI),
     );
   });
   entities.push(...alternatingRails(width, [15.5, 27.3, 38.0], 6.4, 0.09));
@@ -241,16 +282,23 @@ function pinballGrid() {
       rowGap: 3.25,
       radius: 0.3,
       restitution: 0.91,
+      moving: true,
     }),
     ...crossSpinner(7.0, 18.0, 2.0, 2.2, {
       tone: "electric",
       restitution: 0.88,
+      motion: { kind: "shuttle", x: 0.9, period: 3.8 },
     }),
     ...crossSpinner(17.0, 28.0, 2.0, -2.35, {
       tone: "electric",
       restitution: 0.88,
+      motion: { kind: "shuttle", x: 0.9, period: 3.8, phase: PI },
     }),
-    spinner(12, 38.0, 3.0, 2.55, 0, { tone: "electric", restitution: 0.92 }),
+    spinner(12, 38.0, 3.0, 0, 0, {
+      tone: "electric",
+      restitution: 0.82,
+      motion: { kind: "swing", swing: 1.15, period: 3.6 },
+    }),
     box(5.2, 46.4, 3.9, 0.13, 0.22, { restitution: 0.56, friction: 0.04 }),
     box(18.8, 46.4, 3.9, 0.13, -0.22, { restitution: 0.56, friction: 0.04 }),
   ];
@@ -267,18 +315,22 @@ function furnaceSplit() {
   const entities = [
     ...walls(width, goalY),
     ...alternatingRails(width, [7, 16, 25, 33], 6.2, 0.22),
-    ...crossSpinner(12, 11.2, 3.4, 1.55, {
+    ...crossSpinner(12, 11.2, 3.4, 0, {
       tone: "furnace",
       restitution: 0.65,
+      motion: { kind: "swing", swing: 1.1, period: 4.8 },
     }),
     ...crossSpinner(12, 21.0, 3.0, -1.85, {
       tone: "furnace",
       restitution: 0.7,
+      motion: { kind: "shuttle", x: 1.6, period: 4.4 },
     }),
     ...crossSpinner(12, 31.0, 3.5, 2.05, {
       tone: "furnace",
       restitution: 0.74,
     }),
+    piston(4.4, 29, 0),
+    piston(19.6, 29, PI),
     ...pegField({
       width,
       startY: 35.0,
@@ -309,9 +361,19 @@ function lastGate() {
         12,
         y,
         4.2 - i * 0.25,
-        (i % 2 ? -1 : 1) * (1.6 + i * 0.18),
+        i % 2 ? 0 : 1.6 + i * 0.14,
         i % 2 ? 0.35 : -0.35,
-        { tone: "gate", restitution: 0.74 },
+        {
+          tone: "gate",
+          restitution: 0.74,
+          motion: {
+            kind: i % 2 ? "swing" : "shuttle",
+            x: 1.6,
+            swing: i % 2 ? 1.1 : 0,
+            period: 4.6 + i * 0.2,
+            phase: (i * PI) / 2,
+          },
+        },
       ),
     );
     entities.push(
@@ -355,8 +417,18 @@ function spotlightCut() {
       restitution: 0.76,
       tone: "spot",
     }),
-    ...crossSpinner(12, 16.5, 3.0, 1.65, { tone: "spot", restitution: 0.76 }),
-    ...crossSpinner(12, 29.5, 2.8, -1.9, { tone: "spot", restitution: 0.78 }),
+    orbitBumper(12, 10.5, 4.0, 1.1, 5.1),
+    orbitBumper(12, 23.0, 3.2, 1.0, 4.7, PI),
+    ...crossSpinner(12, 16.5, 3.0, 1.65, {
+      tone: "spot",
+      restitution: 0.76,
+      motion: { kind: "orbit", x: 1.4, y: 0.6, period: 4.8 },
+    }),
+    ...crossSpinner(12, 29.5, 2.8, -1.9, {
+      tone: "spot",
+      restitution: 0.78,
+      motion: { kind: "shuttle", x: 1.2, period: 4.5, phase: PI },
+    }),
     ...alternatingRails(width, [32.5], 5.6, 0.13),
   ];
   return stage("spotlight-cut", width, goalY, entities, {
@@ -394,8 +466,16 @@ function twinOrbit() {
       radius: 0.25,
       restitution: 0.82,
     }),
-    spinner(6.7, 19.2, 2.1, 2.1, 0, { tone: "orbit" }),
-    spinner(17.3, 19.2, 2.1, -2.1, 0, { tone: "orbit" }),
+    orbitBumper(6.7, 13, 1.45, 1.0, 4.2),
+    orbitBumper(17.3, 13, 1.45, 1.0, 4.2, PI),
+    spinner(6.7, 19.2, 2.1, 2.1, 0, {
+      tone: "orbit",
+      motion: { kind: "shuttle", x: 0.7, period: 3.8 },
+    }),
+    spinner(17.3, 19.2, 2.1, -2.1, 0, {
+      tone: "orbit",
+      motion: { kind: "shuttle", x: 0.7, period: 3.8, phase: PI },
+    }),
   ];
   return stage("twin-orbit", width, goalY, entities, {
     gravity: 7.9,
@@ -419,9 +499,10 @@ function lastMarble() {
       friction: 0.03,
       tone: "finalRail",
     }),
-    spinner(12, 14.0, 3.7, 1.35, 0.15, {
+    spinner(12, 14.0, 3.7, 0, 0.15, {
       tone: "finalBlade",
       restitution: 0.72,
+      motion: { kind: "swing", swing: 1.1, period: 4.5 },
     }),
     ...pegField({
       width,
@@ -432,10 +513,12 @@ function lastMarble() {
       rowGap: 2.5,
       radius: 0.28,
       restitution: 0.84,
+      moving: true,
     }),
     spinner(12, 29.0, 3.2, -1.55, -0.1, {
       tone: "finalBlade",
       restitution: 0.74,
+      motion: { kind: "shuttle", x: 1.3, period: 4.6 },
     }),
     box(6.2, 34.2, 3.0, 0.12, 0.24, {
       restitution: 0.44,
@@ -453,6 +536,91 @@ function lastMarble() {
     gravity: 8.8,
     palette: ["#030405", "#2e210c", "#ffd166"],
     cameraLead: 0.35,
+  });
+}
+
+function gearCascade() {
+  const width = 24,
+    goalY = 42;
+  const entities = [
+    ...walls(width, goalY),
+    ...alternatingRails(width, [5, 16, 27, 37], 6.2, 0.24),
+    ...pegField({
+      width,
+      startY: 13,
+      rows: 2,
+      cols: 6,
+      xMargin: 3.6,
+      rowGap: 11,
+    }),
+  ];
+  [9.5, 20.5, 31.5].forEach((y, i) => {
+    const x = i % 2 ? 15.5 : 8.5;
+    const speed = i % 2 ? -1.45 : 1.45;
+    const motion = {
+      kind: "orbit",
+      x: 0.9,
+      y: 0.35,
+      period: 5.2,
+      phase: i * PI,
+    };
+    for (let arm = 0; arm < 3; arm++)
+      entities.push(
+        spinner(x, y, 3.2, speed, (arm * PI) / 3, {
+          motion,
+          tone: "gear",
+          thickness: 0.22,
+        }),
+      );
+    entities.push(
+      circle(x, y, 0.72, { bodyType: "kinematic", motion, tone: "gearHub" }),
+    );
+    entities.push(orbitBumper(width - x, y, 2, 1.1, 4.2, i * PI));
+  });
+  return stage("gear-cascade", width, goalY, entities, {
+    gravity: 8.5,
+    cameraLead: 0.8,
+  });
+}
+
+function breakawaySteps() {
+  const width = 24,
+    goalY = 40;
+  const entities = [
+    ...walls(width, goalY),
+    ...alternatingRails(width, [8, 18, 29, 35], 6.4, 0.22),
+    ...pegField({
+      width,
+      startY: 11.5,
+      rows: 3,
+      cols: 6,
+      xMargin: 3.6,
+      rowGap: 7,
+      radius: 0.28,
+    }),
+  ];
+  [5.0, 15.0, 25.0].forEach((y) => {
+    for (const x of [5.0, 19.0])
+      entities.push(
+        box(x, y, 3.1, 0.16, x < 12 ? 0.18 : -0.18, {
+          tone: "breakaway",
+          breakOnContact: true,
+          restitution: 0.35,
+        }),
+      );
+  });
+  entities.push(
+    spinner(12, 11, 3, 1.6, 0, {
+      motion: { kind: "shuttle", x: 1.2, period: 4.4 },
+    }),
+    spinner(12, 23, 3, -1.6, 0, {
+      motion: { kind: "shuttle", x: 1.5, period: 4.8 },
+    }),
+    orbitBumper(12, 32, 3.6, 1.1, 4.6),
+  );
+  return stage("breakaway-steps", width, goalY, entities, {
+    gravity: 8.8,
+    cameraLead: 0.8,
   });
 }
 
@@ -482,6 +650,12 @@ function stage(id, width, goalY, entities, opts) {
     quality: {
       entityCount: entities.length,
       kinematicCount,
+      breakableCount: entities.filter((e) => e.breakOnContact).length,
+      translatingCount: entities.filter((e) => e.motion?.x || e.motion?.y)
+        .length,
+      motionKinds: [
+        ...new Set(entities.filter((e) => e.motion).map((e) => e.motion.kind)),
+      ],
       courseHeight: goalY,
       cruiseSpeed: 1,
       hasCamera: true,
@@ -500,6 +674,8 @@ const BUILDERS = {
   "spotlight-cut": spotlightCut,
   "twin-orbit": twinOrbit,
   "last-marble": lastMarble,
+  "gear-cascade": gearCascade,
+  "breakaway-steps": breakawaySteps,
 };
 
 export const PHYSICS_STAGE_IDS = Object.freeze(Object.keys(BUILDERS));

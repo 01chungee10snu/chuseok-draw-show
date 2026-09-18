@@ -1021,6 +1021,67 @@ dialog::backdrop {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.fixed-schedule {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: color-mix(in srgb, var(--board) 65%, transparent);
+}
+.schedule-head,
+.schedule-row {
+  display: grid;
+  grid-template-columns: 58px minmax(92px, 0.65fr) minmax(150px, 1.35fr);
+  gap: 10px;
+  align-items: center;
+}
+.schedule-head {
+  color: var(--muted);
+  font-size: 11px;
+  padding: 0 3px;
+}
+.schedule-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 310px;
+  overflow: auto;
+  padding: 2px;
+}
+.schedule-row > span {
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+.schedule-row label {
+  display: block !important;
+}
+.schedule-row input,
+.schedule-row select {
+  padding: 9px 10px !important;
+  font-size: 14px !important;
+}
+.seconds-field {
+  position: relative;
+}
+.seconds-field input {
+  padding-right: 30px !important;
+}
+.seconds-field small {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.schedule-estimate {
+  font-size: 13px;
+  line-height: 1.6;
+  font-weight: 650;
+}
 .pool-filter {
   display: flex;
   flex-direction: column;
@@ -1586,6 +1647,13 @@ dialog::backdrop {
   }
   .pool-values {
     grid-template-columns: 1fr;
+  }
+  .schedule-head {
+    display: none;
+  }
+  .schedule-row {
+    grid-template-columns: 48px 86px minmax(125px, 1fr);
+    gap: 7px;
   }
   .info-dialog {
     max-height: 90dvh;

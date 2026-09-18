@@ -127,7 +127,7 @@ test("fully numeric quantile groups preserve ties", () => {
 });
 
 test("filterPool supports exact OR selections, including missing values", () => {
-  const rows = [{ 팀: "A" }, { 팀: "a" }, { 팀: "" }, {}];
+  const rows = [{ 팀: "A" }, { 팀: "a" }, { 팀: "" }, {}, { 팀: "#N/A" }];
   assert.deepEqual(filterPool(rows, { column: "팀", value: "A" }), [rows[0]]);
   assert.deepEqual(filterPool(rows, { column: "팀", values: ["A", "a"] }), [
     rows[0],
@@ -136,6 +136,7 @@ test("filterPool supports exact OR selections, including missing values", () => 
   assert.deepEqual(filterPool(rows, { column: "팀", values: [""] }), [
     rows[2],
     rows[3],
+    rows[4],
   ]);
   assert.deepEqual(filterPool(rows, { column: "팀", values: [] }), []);
   assert.notEqual(filterPool(rows), rows);

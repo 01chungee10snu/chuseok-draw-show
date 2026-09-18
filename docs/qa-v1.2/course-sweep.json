@@ -1,0 +1,647 @@
+{
+  "version": "1.2.0",
+  "cases": 50,
+  "passed": 50,
+  "results": [
+    {
+      "stage": "steel-drop",
+      "seed": 0,
+      "duration": 18,
+      "movingObstacles": 5,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "steel-drop",
+      "seed": 1,
+      "duration": 31.504,
+      "movingObstacles": 5,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "steel-drop",
+      "seed": 18,
+      "duration": 18.604,
+      "movingObstacles": 5,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "steel-drop",
+      "seed": 71,
+      "duration": 21.917,
+      "movingObstacles": 5,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "steel-drop",
+      "seed": 987654321,
+      "duration": 22.901,
+      "movingObstacles": 5,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "moon-orbit",
+      "seed": 0,
+      "duration": 18,
+      "movingObstacles": 9,
+      "translatingObstacles": 9,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "moon-orbit",
+      "seed": 1,
+      "duration": 18,
+      "movingObstacles": 9,
+      "translatingObstacles": 9,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "moon-orbit",
+      "seed": 18,
+      "duration": 18,
+      "movingObstacles": 9,
+      "translatingObstacles": 9,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "moon-orbit",
+      "seed": 71,
+      "duration": 18,
+      "movingObstacles": 9,
+      "translatingObstacles": 9,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "moon-orbit",
+      "seed": 987654321,
+      "duration": 18,
+      "movingObstacles": 9,
+      "translatingObstacles": 9,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "pinball-grid",
+      "seed": 0,
+      "duration": 20.136,
+      "movingObstacles": 13,
+      "translatingObstacles": 12,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "pinball-grid",
+      "seed": 1,
+      "duration": 18,
+      "movingObstacles": 13,
+      "translatingObstacles": 12,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "pinball-grid",
+      "seed": 18,
+      "duration": 19.061,
+      "movingObstacles": 13,
+      "translatingObstacles": 12,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "pinball-grid",
+      "seed": 71,
+      "duration": 18,
+      "movingObstacles": 13,
+      "translatingObstacles": 12,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "pinball-grid",
+      "seed": 987654321,
+      "duration": 18,
+      "movingObstacles": 13,
+      "translatingObstacles": 12,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "furnace-split",
+      "seed": 0,
+      "duration": 20.871,
+      "movingObstacles": 8,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "furnace-split",
+      "seed": 1,
+      "duration": 24.471,
+      "movingObstacles": 8,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "furnace-split",
+      "seed": 18,
+      "duration": 23.716,
+      "movingObstacles": 8,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "furnace-split",
+      "seed": 71,
+      "duration": 22.737,
+      "movingObstacles": 8,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "furnace-split",
+      "seed": 987654321,
+      "duration": 24.849,
+      "movingObstacles": 8,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-gate",
+      "seed": 0,
+      "duration": 18,
+      "movingObstacles": 5,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-gate",
+      "seed": 1,
+      "duration": 18,
+      "movingObstacles": 5,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-gate",
+      "seed": 18,
+      "duration": 18,
+      "movingObstacles": 5,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-gate",
+      "seed": 71,
+      "duration": 18,
+      "movingObstacles": 5,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-gate",
+      "seed": 987654321,
+      "duration": 18,
+      "movingObstacles": 5,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "shuttle",
+        "swing"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "spotlight-cut",
+      "seed": 0,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 6,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "spotlight-cut",
+      "seed": 1,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 6,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "spotlight-cut",
+      "seed": 18,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 6,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "spotlight-cut",
+      "seed": 71,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 6,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "spotlight-cut",
+      "seed": 987654321,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 6,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "twin-orbit",
+      "seed": 0,
+      "duration": 18,
+      "movingObstacles": 4,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "twin-orbit",
+      "seed": 1,
+      "duration": 18,
+      "movingObstacles": 4,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "twin-orbit",
+      "seed": 18,
+      "duration": 18,
+      "movingObstacles": 4,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "twin-orbit",
+      "seed": 71,
+      "duration": 18,
+      "movingObstacles": 4,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "twin-orbit",
+      "seed": 987654321,
+      "duration": 18,
+      "movingObstacles": 4,
+      "translatingObstacles": 4,
+      "motionKinds": [
+        "orbit",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-marble",
+      "seed": 0,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-marble",
+      "seed": 1,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-marble",
+      "seed": 18,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-marble",
+      "seed": 71,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "last-marble",
+      "seed": 987654321,
+      "duration": 18,
+      "movingObstacles": 6,
+      "translatingObstacles": 5,
+      "motionKinds": [
+        "swing",
+        "shuttle"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "gear-cascade",
+      "seed": 0,
+      "duration": 18,
+      "movingObstacles": 15,
+      "translatingObstacles": 15,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "gear-cascade",
+      "seed": 1,
+      "duration": 18,
+      "movingObstacles": 15,
+      "translatingObstacles": 15,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "gear-cascade",
+      "seed": 18,
+      "duration": 18,
+      "movingObstacles": 15,
+      "translatingObstacles": 15,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "gear-cascade",
+      "seed": 71,
+      "duration": 18,
+      "movingObstacles": 15,
+      "translatingObstacles": 15,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "gear-cascade",
+      "seed": 987654321,
+      "duration": 18,
+      "movingObstacles": 15,
+      "translatingObstacles": 15,
+      "motionKinds": [
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "breakaway-steps",
+      "seed": 0,
+      "duration": 18,
+      "movingObstacles": 3,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "breakaway-steps",
+      "seed": 1,
+      "duration": 18,
+      "movingObstacles": 3,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "breakaway-steps",
+      "seed": 18,
+      "duration": 18,
+      "movingObstacles": 3,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "breakaway-steps",
+      "seed": 71,
+      "duration": 18,
+      "movingObstacles": 3,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    },
+    {
+      "stage": "breakaway-steps",
+      "seed": 987654321,
+      "duration": 18,
+      "movingObstacles": 3,
+      "translatingObstacles": 3,
+      "motionKinds": [
+        "shuttle",
+        "orbit"
+      ],
+      "arrivalMatched": true,
+      "ok": true
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 import Box2DFactory from "box2d-wasm";
+import { obstaclePose } from "./physics-motion.js";
 import {
   getPhysicsStageSpec,
   PHYSICS_STAGE_IDS,
@@ -74,12 +75,13 @@ export class PhysicsShowEngine {
   _createEntity(def) {
     const B = this.Box2D;
     const bodyDef = new B.b2BodyDef();
-    const position = this._vec(def.x ?? 0, def.y ?? 0);
+    const pose = obstaclePose(def, 0);
+    const position = this._vec(pose.x, pose.y);
     let body;
     try {
       bodyDef.set_type(this._bodyType(def.bodyType));
       bodyDef.set_position(position);
-      bodyDef.set_angle(def.angle ?? 0);
+      bodyDef.set_angle(pose.angle);
       body = this.world.CreateBody(bodyDef);
     } finally {
       this._destroy(position, bodyDef);
@@ -127,7 +129,7 @@ export class PhysicsShowEngine {
       }
     }
 
-    this.entities.push({ def, body });
+    this.entities.push({ def, body, active: true });
   }
 
   _tokenStart(token, index, total) {
@@ -229,6 +231,7 @@ export class PhysicsShowEngine {
     this.timeScale = 1;
     this.physicsRate = this.stage.cruiseSpeed ?? 1;
     this.elapsedReal = 0;
+    this.simulationTime = 0;
     this.goalApproach = 0;
     this.camera = { x: this.stage.width / 2, y: 5.5, zoom: 1 };
     this.trails = new Map();
@@ -354,6 +357,35 @@ export class PhysicsShowEngine {
     }
   }
 
+  _updateKinematics(dt) {
+    for (const { def, body } of this.entities) {
+      if (def.bodyType !== "kinematic" || !def.motion) continue;
+      const next = obstaclePose(def, this.simulationTime + dt);
+      const position = body.GetPosition();
+      const velocity = this._vec(
+        (next.x - position.x) / dt,
+        (next.y - position.y) / dt,
+      );
+      try {
+        body.SetLinearVelocity(velocity);
+        body.SetAngularVelocity((next.angle - body.GetAngle()) / dt);
+      } finally {
+        this._destroy(velocity);
+      }
+    }
+  }
+
+  _updateBreakaways() {
+    for (const item of this.entities) {
+      if (!item.active || !item.def.breakOnContact) continue;
+      const edge = item.body.GetContactList();
+      if (edge?.contact?.IsTouching()) {
+        item.body.SetEnabled(false);
+        item.active = false;
+      }
+    }
+  }
+
   _transform(item) {
     const p = item.body.GetPosition();
     const angle = item.body.GetAngle();
@@ -387,11 +419,14 @@ export class PhysicsShowEngine {
     let guard = 0;
     while (this.accumulator >= this.stage.fixedStep && guard < 12) {
       this._rememberTransforms();
+      this._updateKinematics(this.stage.fixedStep);
       this.world.Step(
         this.stage.fixedStep,
         this.stage.velocityIterations,
         this.stage.positionIterations,
       );
+      this.simulationTime += this.stage.fixedStep;
+      this._updateBreakaways();
       this.accumulator -= this.stage.fixedStep;
       guard += 1;
     }
@@ -403,7 +438,7 @@ export class PhysicsShowEngine {
   }
 
   _entitySnapshot(item) {
-    return { def: item.def, ...this._transform(item) };
+    return { def: item.def, active: item.active, ...this._transform(item) };
   }
 
   frame() {

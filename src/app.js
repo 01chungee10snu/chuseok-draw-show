@@ -1,10 +1,13 @@
 import {
   parseParticipants,
+  decodeParticipantBytes,
+  isSafeGroupingHeader,
   eligibleHeaders,
   chooseHeader,
   drawRound,
   drawSubset,
   filterPool,
+  groupingFilterValue,
   createStageDeck,
 } from "./lucky-draw-model.js";
 import {
@@ -13,6 +16,14 @@ import {
   ShowDirector,
   Sound,
 } from "./show-director.js";
+import { cryptoRandomInt } from "./round-planner.js";
+import {
+  canUseGroupPlan,
+  effectiveRoundCount,
+  estimatedShowSeconds,
+  fixedRoundTarget,
+  normalizeScheduleConfig,
+} from "./round-schedule.js";
 
 const $ = (id) => document.getElementById(id);
 const html = (value) =>
@@ -23,6 +34,7 @@ const html = (value) =>
         c
       ],
   );
+const SCHEDULE_STAGE_IDS = STAGES.map((stage) => stage.id);
 const DEFAULTS = {
   title: "럭키드로우",
   subtitle: "EVERYONE IN. ONE LUCKY MOMENT.",
@@ -30,6 +42,7 @@ const DEFAULTS = {
   theme: "graphite",
   pace: "normal",
   reduced: false,
+  schedule: normalizeScheduleConfig({}, SCHEDULE_STAGE_IDS),
 };
 let config = { ...DEFAULTS };
 try {
@@ -44,11 +57,16 @@ try {
       config.theme = saved.theme;
     if (["normal", "long"].includes(saved.pace)) config.pace = saved.pace;
     config.reduced = saved.reduced === true;
+    config.schedule = normalizeScheduleConfig(
+      saved.schedule,
+      SCHEDULE_STAGE_IDS,
+    );
   }
 } catch {}
 const state = {
   rows: [],
   headers: [],
+  importWarnings: [],
   source: "",
   hash: "",
   demo: true,
@@ -74,6 +92,10 @@ const state = {
 let backgroundURL = null;
 let backgroundPending;
 let draftPreset = "all";
+let draftSchedule = normalizeScheduleConfig(
+  config.schedule,
+  SCHEDULE_STAGE_IDS,
+);
 let confirmationResolve = null;
 const deck = createStageDeck(GROUP_STAGE_IDS);
 const sound = new Sound();
@@ -87,6 +109,14 @@ const director = new ShowDirector($("showCanvas"), {
 });
 const reduced = () =>
   config.reduced || matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fixedMode = () => config.schedule.mode === "fixed";
+const effectiveRounds = () =>
+  effectiveRoundCount(state.initialN, config.schedule.requestedRounds);
+const roundPosition = () => state.history.length + 1;
+const roundDisplay = (round = roundPosition()) =>
+  fixedMode()
+    ? `ROUND ${round} / ${effectiveRounds()}`
+    : `ROUND ${String(round).padStart(2, "0")}`;
 
 function applyAppearance() {
   document.body.dataset.theme = config.theme;
@@ -175,6 +205,9 @@ function nextLabel() {
       : state.pending.result
         ? "연출 다시 보기"
         : "경기 시작";
+  else if (fixedMode() && state.alive.length === 1) text = "당첨자 공개";
+  else if (fixedMode() && state.history.length < effectiveRounds())
+    text = `${roundDisplay()} 시작`;
   else if (state.finalists) {
     text =
       state.alive.length > 4
@@ -267,7 +300,11 @@ function readyScene() {
   $("roundLabel").textContent = "READY";
   $("stageLabel").textContent = "모두의 행운이 모이는 곳";
   $("phaseLabel").textContent = "준비 완료";
-  $("stageCounter").textContent = "8 GAMES · RANDOM ORDER";
+  $("stageCounter").textContent = fixedMode()
+    ? effectiveRounds()
+      ? `${effectiveRounds()} GAMES · FIXED SCHEDULE`
+      : "NO ELIMINATION GAME"
+    : `${GROUP_STAGE_IDS.length} GAMES · RANDOM ORDER`;
   $("raceProgress").style.width = "0";
   $("sceneCaption").textContent = "";
   director.setIdle(reduced());
@@ -387,6 +424,7 @@ async function loadText(text, { source, demo = false }, expectedEpoch) {
   if (expectedEpoch !== state.epoch) return;
   state.rows = parsed.rows;
   state.headers = parsed.headers;
+  state.importWarnings = [...parsed.warnings];
   state.hash = hash;
   state.source = source;
   state.demo = demo;
@@ -400,9 +438,7 @@ async function loadText(text, { source, demo = false }, expectedEpoch) {
   resetSession();
   populateDataSettings();
   if (parsed.warnings.length)
-    status(
-      `${state.rows.length}명 준비 완료. 동명이인은 참가번호로 구별합니다.`,
-    );
+    status(`${state.rows.length}명 준비 완료. ${parsed.warnings.join(" ")}`);
 }
 async function confirmAction(title, message) {
   $("confirmTitle").textContent = title;
@@ -497,6 +533,101 @@ function prepareHeader() {
   $("stageCounter").textContent = `NEXT · ${stage.name}`;
   nextLabel();
 }
+function chooseFixedHeaderPlan(remaining) {
+  const plans = eligibleHeaders(state.alive, candidateOptions())
+    .filter((plan) => canUseGroupPlan(plan, remaining))
+    .sort((a, b) => {
+      const imbalanceA =
+        Math.abs(a.lanes[0].count - a.lanes[1].count) / a.before;
+      const imbalanceB =
+        Math.abs(b.lanes[0].count - b.lanes[1].count) / b.before;
+      return imbalanceA - imbalanceB || a.header.localeCompare(b.header, "ko");
+    })
+    .slice(0, 6);
+  return plans.length ? plans[cryptoRandomInt(plans.length)] : null;
+}
+function defaultPersonalStage(target) {
+  if (target === 1) return "last-marble";
+  if (target === 2) return "twin-orbit";
+  return "spotlight-cut";
+}
+function prepareFixedRound() {
+  const total = effectiveRounds();
+  const round = roundPosition();
+  const remaining = total - state.history.length;
+  if (state.alive.length <= 1 || remaining < 1) {
+    completeWinner();
+    return;
+  }
+  state.round = round;
+  const entry = config.schedule.entries[round - 1];
+  const plan =
+    state.alive.length > 10 && remaining >= 3
+      ? chooseFixedHeaderPlan(remaining)
+      : null;
+  if (plan) {
+    const stageId = entry.stageId || deck.next();
+    state.pending = {
+      kind: "header",
+      plan,
+      stageId,
+      duration: entry.seconds,
+      fixed: true,
+      result: null,
+    };
+    renderPlan(plan);
+    showOverlay(
+      `${roundDisplay(round)} · 이번 기준`,
+      plan.label,
+      "오른쪽에서 나의 편을 확인해 주세요.",
+      STAGES.find((stage) => stage.id === stageId)?.kind === "physics"
+        ? "A·B 대표 공 중 먼저 골인한 편의 그룹 전체가 진출합니다."
+        : "마지막에 선택 표시가 남는 편의 그룹 전체가 진출합니다.",
+    );
+    status("내 그룹을 확인하고, 진행자가 경기를 시작해 주세요.");
+  } else {
+    const target = fixedRoundTarget(state.alive.length, remaining);
+    const sealed = state.alive.length > 10;
+    const stageId = sealed
+      ? "light-grid"
+      : entry.stageId || defaultPersonalStage(target);
+    state.pending = {
+      kind: sealed ? "sealed" : "final",
+      target,
+      stageId,
+      duration: entry.seconds,
+      fixed: true,
+      result: null,
+    };
+    if (sealed) {
+      $("boardEyebrow").textContent = "EQUAL CHANCE";
+      $("boardTitle").textContent = "참가번호 추첨";
+      $("boardContent").innerHTML =
+        `<p class="remaining-note">${state.alive.length.toLocaleString("ko")}명 중 ${target.toLocaleString("ko")}명을 같은 확률로 뽑습니다.<br>개인 이름은 10명 이하가 된 뒤 공개합니다.</p>`;
+      showOverlay(
+        roundDisplay(round),
+        "참가번호 추첨",
+        `${target.toLocaleString("ko")}명이 다음 라운드로 진출합니다.`,
+        "참가번호를 라이트 그리드로 공개합니다.",
+      );
+    } else {
+      renderFinalists();
+      showOverlay(
+        roundDisplay(round),
+        target === 1 ? "마지막 추첨" : `${target}명을 향한 추첨`,
+        "남은 모든 사람에게 같은 기회가 있습니다.",
+      );
+    }
+    status(
+      `${state.alive.length.toLocaleString("ko")}명 중 ${target.toLocaleString("ko")}명을 기다립니다.`,
+    );
+  }
+  const stage = STAGES.find((item) => item.id === state.pending.stageId);
+  $("roundLabel").textContent = roundDisplay(round);
+  $("stageLabel").textContent = stage?.name || "추첨";
+  $("stageCounter").textContent = `NEXT · ${stage?.name || "추첨"}`;
+  nextLabel();
+}
 function revealFinalists() {
   state.finalists = true;
   renderFinalists();
@@ -563,8 +694,9 @@ async function runPending() {
   }
   hideOverlay();
   $("arena").classList.add("running");
-  $("roundLabel").textContent =
-    p.kind === "header"
+  $("roundLabel").textContent = p.fixed
+    ? roundDisplay(state.history.length + 1)
+    : p.kind === "header"
       ? `ROUND ${String(state.round).padStart(2, "0")}`
       : p.target === 1
         ? "THE FINAL"
@@ -612,7 +744,8 @@ async function runPending() {
   try {
     meta = await director.play(tokens, {
       stageId: p.stageId,
-      duration: config.pace === "long" ? 24 : 18,
+      duration: p.fixed ? p.duration : config.pace === "long" ? 24 : 18,
+      ...(p.fixed ? { exactDuration: true } : {}),
       reduced: reduced(),
       advancingIds,
       seed: p.raceSeed,
@@ -666,7 +799,7 @@ function applyPending() {
     state.usedHeaders.add(p.plan.header);
     renderPlan(p.plan, p.result.lane);
     showOverlay(
-      `ROUND ${String(state.round).padStart(2, "0")} · 함께 남은 사람들`,
+      `${p.fixed ? roundDisplay(state.history.length + 1) : `ROUND ${String(state.round).padStart(2, "0")}`} · 함께 남은 사람들`,
       `${state.alive.length}명, 다음 무대로`,
       p.result.selectedLabels.join(" · "),
       `${p.result.lane ? "B" : "A"} 편이 다음 라운드로 진출합니다.`,
@@ -674,8 +807,10 @@ function applyPending() {
   } else if (p.kind === "sealed") {
     showOverlay(
       "GROUP STAGE COMPLETE",
-      "마지막 10명",
-      "최종 후보를 공개할 준비가 끝났습니다.",
+      `${state.alive.length.toLocaleString("ko")}명, 다음 무대로`,
+      state.alive.length <= 10
+        ? "최종 후보를 공개할 준비가 끝났습니다."
+        : "다음 참가번호 추첨을 이어갑니다.",
     );
   } else {
     renderFinalists();
@@ -706,7 +841,8 @@ function applyPending() {
   renderCounts();
   renderJourney();
   sound.win();
-  if (p.kind === "final" && state.alive.length === 1) completeWinner();
+  if ((p.kind === "final" || p.fixed) && state.alive.length === 1)
+    completeWinner();
   else
     status(
       state.alive.length <= 10 && !state.finalists
@@ -766,6 +902,10 @@ async function advance() {
     if (state.pending) {
       if (state.pending.showCompleted) applyPending();
       else await runPending();
+    } else if (fixedMode()) {
+      if (state.alive.length === 1) completeWinner();
+      else if (state.alive.length <= 10 && !state.finalists) revealFinalists();
+      else prepareFixedRound();
     } else if (state.finalists) await prepareFinal();
     else if (state.alive.length <= 10) revealFinalists();
     else prepareHeader();
@@ -783,10 +923,7 @@ async function advance() {
 function safePoolHeaders() {
   return state.headers.filter(
     (h) =>
-      !h.startsWith("_") &&
-      !/(성명|이름|name|사번|참가자.?id|^id$|phone|전화|휴대폰|메일|email|주소|address|생년월일|최초입사일|메모|비고)/i.test(
-        h,
-      ) &&
+      isSafeGroupingHeader(state.rows, h) &&
       new Set(state.rows.map((r) => r[h])).size <= 100,
   );
 }
@@ -794,6 +931,8 @@ function populateDataSettings() {
   $("dataStatus").textContent = state.rows.length
     ? `${state.source} · ${state.rows.length.toLocaleString("ko")}명 · 명단 준비 완료`
     : "불러온 명단이 없습니다.";
+  $("dataWarnings").textContent = state.importWarnings.join(" ");
+  $("dataWarnings").hidden = !state.importWarnings.length;
   $("poolColumn").innerHTML =
     '<option value="">전체 참가자</option>' +
     safePoolHeaders()
@@ -840,13 +979,72 @@ function updatePoolEstimate() {
   $("poolEstimate").textContent =
     `적용 예상 인원 ${count.toLocaleString("ko")}명`;
   $("poolEstimate").classList.toggle("empty", count === 0);
+  updateScheduleEstimate(count);
+}
+function updateScheduleEstimate(population) {
+  if (!$("scheduleEstimate")) return;
+  const count =
+    population ?? filteredRows(draftPool(), $("excludeWinners").checked).length;
+  if (!count) {
+    $("scheduleEstimate").textContent =
+      "추첨 대상을 선택하면 예상 시간을 계산합니다.";
+    return;
+  }
+  const estimate = estimatedShowSeconds(draftSchedule, count);
+  if (!estimate.rounds) {
+    $("scheduleEstimate").textContent =
+      "참가자가 1명이어서 별도의 탈락 게임 없이 당첨자를 공개합니다.";
+    return;
+  }
+  const rounded = Math.round(estimate.total);
+  const minutes = Math.floor(rounded / 60);
+  const seconds = rounded % 60;
+  $("scheduleEstimate").textContent =
+    `실제 ${estimate.rounds}라운드 · 게임 ${estimate.playback}초 + 결과 확인 약 ${estimate.confirmation.toFixed(1)}초 · 합계 약 ${minutes ? `${minutes}분 ` : ""}${seconds}초`;
+}
+function renderScheduleRows() {
+  draftSchedule = normalizeScheduleConfig(draftSchedule, SCHEDULE_STAGE_IDS);
+  const count = draftSchedule.requestedRounds;
+  const stageOptions = STAGES;
+  $("scheduleRows").innerHTML = draftSchedule.entries
+    .slice(0, count)
+    .map(
+      (entry, index) =>
+        `<div class="schedule-row"><span>${index + 1}</span><label class="seconds-field"><input data-schedule-seconds="${index}" type="number" min="12" max="90" step="1" value="${entry.seconds}" aria-label="${index + 1}라운드 게임 시간"><small>초</small></label><label><select data-schedule-stage="${index}" aria-label="${index + 1}라운드 게임"><option value="">자동</option>${stageOptions.map((stage) => `<option value="${html(stage.id)}" ${entry.stageId === stage.id ? "selected" : ""}>${html(stage.name)}</option>`).join("")}</select></label></div>`,
+    )
+    .join("");
+  $("scheduleRows")
+    .querySelectorAll("[data-schedule-seconds]")
+    .forEach((input) => {
+      input.oninput = () => {
+        draftSchedule.entries[Number(input.dataset.scheduleSeconds)].seconds =
+          input.value;
+        updateScheduleEstimate();
+      };
+    });
+  $("scheduleRows")
+    .querySelectorAll("[data-schedule-stage]")
+    .forEach((select) => {
+      select.onchange = () => {
+        draftSchedule.entries[Number(select.dataset.scheduleStage)].stageId =
+          select.value;
+      };
+    });
+  updateScheduleEstimate();
+}
+function updateScheduleMode() {
+  const fixed = $("scheduleModeInput").value === "fixed";
+  draftSchedule.mode = fixed ? "fixed" : "automatic";
+  $("automaticScheduleFields").hidden = fixed;
+  $("fixedScheduleFields").hidden = !fixed;
+  updateScheduleEstimate();
 }
 function populatePoolValues(selected = []) {
   const key = $("poolColumn").value;
   const counts = new Map();
   if (key)
     state.rows.forEach((row) => {
-      const value = row[key] ?? "";
+      const value = groupingFilterValue(row, key);
       counts.set(value, (counts.get(value) || 0) + 1);
     });
   const values = [...counts.keys()].sort((a, b) =>
@@ -883,6 +1081,11 @@ function openSettings(focusPool = false) {
   document.querySelector(`input[name=theme][value="${config.theme}"]`).checked =
     true;
   $("motionInput").checked = config.reduced;
+  draftSchedule = normalizeScheduleConfig(config.schedule, SCHEDULE_STAGE_IDS);
+  $("scheduleModeInput").value = draftSchedule.mode;
+  $("fixedRoundsInput").value = draftSchedule.requestedRounds;
+  renderScheduleRows();
+  updateScheduleMode();
   populateDataSettings();
   backgroundPending = undefined;
   $("settingsError").textContent = "";
@@ -895,10 +1098,31 @@ function openSettings(focusPool = false) {
 }
 $("settingsButton").onclick = () => openSettings();
 $("poolSettingsButton").onclick = () => openSettings(true);
+$("scheduleModeInput").onchange = updateScheduleMode;
+$("fixedRoundsInput").oninput = () => {
+  const input = $("fixedRoundsInput");
+  // Let a user clear the field or type the first digit of 10–12.
+  // Normalize out-of-range values only when the edit is committed.
+  if (!input.value || !input.validity.valid) return;
+  draftSchedule.requestedRounds = input.valueAsNumber;
+  renderScheduleRows();
+};
+$("fixedRoundsInput").onchange = () => {
+  draftSchedule.requestedRounds = $("fixedRoundsInput").value;
+  draftSchedule = normalizeScheduleConfig(draftSchedule, SCHEDULE_STAGE_IDS);
+  $("fixedRoundsInput").value = draftSchedule.requestedRounds;
+  renderScheduleRows();
+};
 $("poolColumn").onchange = () => {
   draftPreset = "all";
   const values = $("poolColumn").value
-    ? [...new Set(state.rows.map((row) => row[$("poolColumn").value] ?? ""))]
+    ? [
+        ...new Set(
+          state.rows.map((row) =>
+            groupingFilterValue(row, $("poolColumn").value),
+          ),
+        ),
+      ]
     : [];
   populatePoolValues(values);
   markPreset();
@@ -945,6 +1169,14 @@ $("settingsForm").onsubmit = async (e) => {
     theme,
     pace: $("paceInput").value,
     reduced: $("motionInput").checked,
+    schedule: normalizeScheduleConfig(
+      {
+        ...draftSchedule,
+        mode: $("scheduleModeInput").value,
+        requestedRounds: $("fixedRoundsInput").value,
+      },
+      SCHEDULE_STAGE_IDS,
+    ),
   };
   const pool = {
     preset: draftPreset,
@@ -962,14 +1194,17 @@ $("settingsForm").onsubmit = async (e) => {
     exclude !== state.exclude ||
     [...excluded].sort().join("|") !==
       [...state.excludedHeaders].sort().join("|");
+  const changesSchedule =
+    JSON.stringify(next.schedule) !== JSON.stringify(config.schedule) ||
+    (next.schedule.mode === "automatic" && next.pace !== config.pace);
   if (
-    changesPool &&
+    (changesPool || changesSchedule) &&
     (state.history.length || state.pending) &&
     !state.finished
   ) {
     const accepted = await confirmAction(
-      "추첨 기준을 바꿀까요?",
-      "진행하던 라운드를 끝내고 새 추첨을 준비합니다. 이미 발표한 당첨 기록은 유지합니다.",
+      "추첨 진행을 새로 준비할까요?",
+      "대상 또는 라운드 설정이 바뀌어 현재 진행을 초기화합니다. 이미 발표한 당첨 기록은 유지합니다.",
     );
     if (!accepted) return;
   }
@@ -989,7 +1224,7 @@ $("settingsForm").onsubmit = async (e) => {
       : "";
     backgroundPending = undefined;
   }
-  if (changesPool) resetSession();
+  if (changesPool || changesSchedule) resetSession();
   else if (state.finished) {
     const w = state.winners.find((w) => w.session === state.sessionId);
     if (w) {
@@ -1033,7 +1268,11 @@ $("csvInput").onchange = async (e) => {
     e.target.value = "";
     return;
   }
-  await requestLoad(() => file.text(), file.name, false);
+  await requestLoad(
+    async () => decodeParticipantBytes(await file.arrayBuffer()),
+    file.name,
+    false,
+  );
   e.target.value = "";
 };
 const demoLoader = () =>
@@ -1160,7 +1399,7 @@ $("exportAudit").onclick = () =>
     JSON.stringify(
       {
         app: "럭키드로우",
-        version: "1.1.0",
+        version: "1.2.0",
         event: config.title,
         demo: state.demo,
         rosterSha256: state.hash,
@@ -1218,7 +1457,7 @@ window.addEventListener("beforeunload", (e) => {
 if (["127.0.0.1", "localhost"].includes(location.hostname))
   Object.defineProperty(window, "luckyDrawQA", {
     get: () => ({
-      version: "1.1.0",
+      version: "1.2.0",
       busy: state.busy,
       loading: state.loading,
       count: state.alive.length,
@@ -1226,6 +1465,15 @@ if (["127.0.0.1", "localhost"].includes(location.hostname))
       finalists: state.finalists,
       finished: state.finished,
       round: state.round,
+      schedule: {
+        mode: config.schedule.mode,
+        requestedRounds: config.schedule.requestedRounds,
+        effectiveRounds: effectiveRounds(),
+        completedRounds: state.history.length,
+        next: config.schedule.entries[state.history.length]
+          ? { ...config.schedule.entries[state.history.length] }
+          : null,
+      },
       stage: state.pending?.stageId || director.result?.stage,
       hasPending: !!state.pending,
       winners: state.winners.length,
@@ -1237,6 +1485,22 @@ if (["127.0.0.1", "localhost"].includes(location.hostname))
             duration: director.duration,
             goalY: director.raceFrame.stage.goalY,
             camera: { ...director.raceFrame.camera },
+            brokenObstacles: director.raceFrame.entities.filter(
+              (e) => e.active === false,
+            ).length,
+            obstacles: director.raceFrame.entities.flatMap((e, index) =>
+              e.def.bodyType === "kinematic"
+                ? [
+                    {
+                      index,
+                      kind: e.def.motion?.kind || "spin",
+                      x: e.x,
+                      y: e.y,
+                      angle: e.angle,
+                    },
+                  ]
+                : [],
+            ),
             tokens: director.raceFrame.tokens.map((t) => ({
               id: t.token.id,
               x: t.x,

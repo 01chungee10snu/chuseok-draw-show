@@ -28,7 +28,7 @@ const people = (n) =>
     count: i + 1,
   }));
 
-test("all eight courses qualify exactly the committed group or people, with stable identities", async () => {
+test("all courses qualify exactly the committed group or people, with stable identities", async () => {
   for (const stage of PHYSICS_STAGE_IDS) {
     const n = stage === "spotlight-cut" ? 8 : stage === "twin-orbit" ? 4 : 2;
     const count =

@@ -1,0 +1,117 @@
+{
+  "version": "1.2.0",
+  "csv": {
+    "count": 188,
+    "headers": [
+      "소속",
+      "직위",
+      "그룹입사년도",
+      "연령",
+      "태어난월",
+      "사내메일첫글자",
+      "휴대전화뒤1자리",
+      "성씨 초성"
+    ],
+    "groups": 27,
+    "manager": 68,
+    "senior": 120,
+    "missing": 1,
+    "warning": "휴대전화뒤1자리 열의 스프레드시트 오류 1개를 그룹 추첨에서 (미입력)으로 처리합니다."
+  },
+  "attachmentRound": {
+    "round": 1,
+    "before": 188,
+    "after": 94,
+    "stage": "gear-cascade",
+    "seconds": 12,
+    "elapsed": 13.52,
+    "kind": "physics",
+    "arrivalMatched": true,
+    "frames": 128,
+    "brokenObstacles": 0,
+    "largestObstacleTravel": 4.565,
+    "paused": false
+  },
+  "configured": {
+    "rounds": 4,
+    "seconds": [
+      12,
+      14,
+      12,
+      16
+    ],
+    "estimate": "실제 4라운드 · 게임 54초 + 결과 확인 약 5.6초 · 합계 약 1분 0초"
+  },
+  "cases": [
+    {
+      "round": 1,
+      "before": 240,
+      "after": 119,
+      "stage": "gear-cascade",
+      "seconds": 12,
+      "elapsed": 13.53,
+      "kind": "physics",
+      "arrivalMatched": true,
+      "frames": 125,
+      "brokenObstacles": 0,
+      "largestObstacleTravel": 4.565,
+      "paused": true
+    },
+    {
+      "round": 2,
+      "before": 119,
+      "after": 60,
+      "stage": "breakaway-steps",
+      "seconds": 14,
+      "elapsed": 15.48,
+      "kind": "physics",
+      "arrivalMatched": true,
+      "frames": 143,
+      "brokenObstacles": 4,
+      "largestObstacleTravel": 7.521,
+      "paused": false
+    },
+    {
+      "round": 3,
+      "before": 60,
+      "after": 8,
+      "stage": "light-grid",
+      "seconds": 12,
+      "elapsed": 13.48,
+      "kind": "grid",
+      "arrivalMatched": null,
+      "frames": 0,
+      "brokenObstacles": 0,
+      "largestObstacleTravel": 0,
+      "paused": false
+    },
+    {
+      "round": 4,
+      "before": 8,
+      "after": 1,
+      "stage": "last-marble",
+      "seconds": 16,
+      "elapsed": 17.6,
+      "kind": "physics",
+      "arrivalMatched": true,
+      "frames": 156,
+      "brokenObstacles": 0,
+      "largestObstacleTravel": 2.6,
+      "paused": false
+    }
+  ],
+  "completedRounds": 4,
+  "winnerCount": 1,
+  "persistence": true,
+  "mobile": {
+    "width": 390,
+    "scrollWidth": 390,
+    "rows": 12,
+    "options": 14,
+    "sequentialDigitInput": true,
+    "changeEvent": true
+  },
+  "mobileRuntimeErrors": [],
+  "evidenceNote": "Main CSV and four-game results recovered verbatim from the completed game assertions in the first run. Its final mobile check sent change to an input-only handler. Mobile QA was resumed after fixing premature digit clamping and supporting committed change events; the game sequence was not repeated."
+}
+

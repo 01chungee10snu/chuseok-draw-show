@@ -11,8 +11,13 @@ export async function preparePhysicsRace(
   stageId,
   tokens,
   advancingIds,
-  { minimumDuration = 18, seed = 0 } = {},
+  { minimumDuration = 18, playbackDuration, seed = 0 } = {},
 ) {
+  if (
+    playbackDuration !== undefined &&
+    (!Number.isFinite(playbackDuration) || playbackDuration <= 0)
+  )
+    throw new Error("경기 시간은 0보다 큰 숫자여야 합니다.");
   const ids = new Set(tokens.map((t) => t.id));
   const advancing = new Set(advancingIds);
   if (
@@ -30,20 +35,33 @@ export async function preparePhysicsRace(
   let frame = await engine.start(stageId, paths);
   const stage = frame.stage;
   const entities = frame.entities;
+  const moving = entities
+    .map((entity, index) => (entity.def.bodyType === "kinematic" ? index : -1))
+    .filter((index) => index >= 0);
+  const motionIndex = new Map(moving.map((index, slot) => [index, slot * 3]));
   const radii = frame.tokens.map((t) => t.radius);
   const compact = (f) => ({
     tokens: f.tokens.map((t) => [t.x, t.y, t.angle]),
-    angles: f.entities.map((e) => e.angle),
+    // Static fixtures share their original pose; only moving bodies need samples.
+    motions: moving.flatMap((index) => {
+      const e = f.entities[index];
+      return [e.x, e.y, e.angle];
+    }),
     camera: { ...f.camera },
     timeScale: f.timeScale,
   });
   const samples = [compact(frame)];
   const crossings = new Map();
+  const brokenAt = new Map();
   // Bounded preparation; a bad course falls back transparently, never fabricates
   // a finish or changes the committed draw. Yield so the loading UI can paint.
   for (let step = 1; step <= 6000 && crossings.size < advancing.size; step++) {
     const previous = frame;
     frame = engine.step(SAMPLE_STEP);
+    frame.entities.forEach((entity, index) => {
+      if (entity.active === false && !brokenAt.has(index))
+        brokenAt.set(index, step * SAMPLE_STEP);
+    });
     samples.push(compact(frame));
     frame.tokens.forEach((token, i) => {
       if (crossings.has(i) || token.y < stage.goalY) return;
@@ -73,7 +91,9 @@ export async function preparePhysicsRace(
   for (let i = 0, next = 0; i < assigned.length; i++)
     if (!assigned[i]) assigned[i] = { ...rest[next++] };
   const finishTime = qualifiedPaths.at(-1)[1];
-  const duration = Math.max(minimumDuration, finishTime);
+  // Automatic mode preserves natural speed. An explicit event timetable can
+  // stretch or compress the same path without changing collisions or qualifiers.
+  const duration = playbackDuration ?? Math.max(minimumDuration, finishTime);
   engine.dispose();
   return {
     duration,
@@ -109,10 +129,22 @@ export async function preparePhysicsRace(
       return {
         stage,
         tokens: positions,
-        entities: entities.map((e, i) => ({
-          ...e,
-          angle: lerp(a.angles[i], b.angles[i], mix),
-        })),
+        entities: entities.map((e, i) => {
+          const slot = motionIndex.get(i);
+          const pose =
+            slot === undefined
+              ? e
+              : {
+                  ...e,
+                  x: lerp(a.motions[slot], b.motions[slot], mix),
+                  y: lerp(a.motions[slot + 1], b.motions[slot + 1], mix),
+                  angle: lerp(a.motions[slot + 2], b.motions[slot + 2], mix),
+                };
+          const broke = brokenAt.get(i);
+          return broke !== undefined && simulationTime >= broke
+            ? { ...pose, active: false, brokenFor: simulationTime - broke }
+            : pose;
+        }),
         camera: Object.fromEntries(
           ["x", "y", "zoom"].map((k) => [
             k,

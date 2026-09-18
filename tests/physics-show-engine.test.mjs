@@ -12,8 +12,8 @@ import {
   PHYSICS_STAGE_IDS,
 } from "../src/physics-stage-maps.js";
 
-test("all eight v0.7 show stages are Box2D stages", () => {
-  assert.equal(PHYSICS_STAGE_IDS.length, 8);
+test("all ten registered physical stages use Box2D", () => {
+  assert.equal(PHYSICS_STAGE_IDS.length, 10);
   for (const id of PHYSICS_STAGE_IDS)
     assert.equal(isPhysicsStage(id), true, id);
   assert.equal(isPhysicsStage("unknown-stage"), false);
